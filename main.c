@@ -44,6 +44,12 @@ int main(int argc, char *argv[]) {
 
 			if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status)) {
 				printf("received message: %d\n", msg.msgid);
+				if (msg.msgid == MAVLINK_MSG_ID_ATTITUDE) {
+					mavlink_attitude_t attitude;
+					mavlink_msg_attitude_decode(&msg, &attitude);
+
+					printf("attitude: roll: %f, pitch: %f, yaw: %f\n", attitude.roll, attitude.pitch, attitude.yaw);
+				}
 			}
 		}
 	}
