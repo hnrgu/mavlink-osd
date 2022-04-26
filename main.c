@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <common/mavlink.h>
+#include <pthread.h>
+
+#include "ui.h"
+#include "telem_data.h"
 
 int set_message_interval(int fd) {
 	mavlink_message_t msg;
@@ -55,6 +59,11 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	telem_init();
+
+	pthread_t render_thread;
+	pthread_create(&render_thread, NULL, render_thread_start, NULL);
+
 	while (1) {
 		char buf[2048];
 		int len = read(fd, buf, sizeof(buf));
@@ -72,6 +81,12 @@ int main(int argc, char *argv[]) {
 				if (msg.msgid == MAVLINK_MSG_ID_ATTITUDE) {
 					mavlink_attitude_t attitude;
 					mavlink_msg_attitude_decode(&msg, &attitude);
+
+					telem_lock();
+					telem_data.pitch = attitude.pitch;
+					telem_data.roll = attitude.roll;
+					telem_data.yaw = attitude.yaw;
+					telem_unlock();
 
 					printf("attitude: roll: %f, pitch: %f, yaw: %f\n", attitude.roll, attitude.pitch, attitude.yaw);
 				}
