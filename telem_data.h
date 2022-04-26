@@ -2,9 +2,16 @@
 #define TELEM_DATA_H
 
 struct telem_data {
-	float roll;
-	float pitch;
-	float yaw;
+	float roll; // rad
+	float pitch; // rad
+	float yaw; // rad
+	float heading; // deg
+	float altitude; // m, msl
+	float airspeed; // m/s
+	float groundspeed; // m/s
+	float climbrate; // m/s
+	int lat; // degE7
+	int lon; // degE7
 };
 
 extern struct telem_data telem_data;

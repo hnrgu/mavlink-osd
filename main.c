@@ -8,9 +8,11 @@
 #include "ui.h"
 #include "telem_data.h"
 
-int set_message_interval(int fd) {
+#define OK(val) if (val == -1) return 1
+
+int set_message_interval(int fd, int cmd, int us) {
 	mavlink_message_t msg;
-	mavlink_msg_command_long_pack(1, 1, &msg, 1, 0, MAV_CMD_SET_MESSAGE_INTERVAL, 0, MAVLINK_MSG_ID_ATTITUDE, 10000, 0, 0, 0, 0, 0);
+	mavlink_msg_command_long_pack(1, 1, &msg, 1, 0, MAV_CMD_SET_MESSAGE_INTERVAL, 0, cmd, us, 0, 0, 0, 0, 0);
 
 	uint8_t mav_buf[MAVLINK_MAX_PACKET_LEN];
 	uint16_t mav_len = mavlink_msg_to_send_buffer(mav_buf, &msg);
@@ -31,6 +33,7 @@ int set_message_interval(int fd) {
 }
 
 int main(int argc, char *argv[]) {
+	/*
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s [tty]\n", argv[0]);
 		return 1;
@@ -54,10 +57,14 @@ int main(int argc, char *argv[]) {
 		perror("tcsetattr");
 		return 1;
 	}
+	*/
+	int fd = 1;
 
-	if (set_message_interval(fd) == -1) {
-		return 1;
-	}
+	OK(set_message_interval(fd, MAVLINK_MSG_ID_ATTITUDE, 33333) == -1);
+	OK(set_message_interval(fd, MAVLINK_MSG_ID_VFR_HUD, 33333) == -1);
+	OK(set_message_interval(fd, MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 1000000) == -1);
+
+	fd = 0;
 
 	telem_init();
 
@@ -87,8 +94,21 @@ int main(int argc, char *argv[]) {
 					telem_data.roll = attitude.roll;
 					telem_data.yaw = attitude.yaw;
 					telem_unlock();
+				} else if (msg.msgid == MAVLINK_MSG_ID_VFR_HUD) {
+					mavlink_vfr_hud_t vfr_hud;
+					mavlink_msg_vfr_hud_decode(&msg, &vfr_hud);
 
-					printf("attitude: roll: %f, pitch: %f, yaw: %f\n", attitude.roll, attitude.pitch, attitude.yaw);
+					telem_data.airspeed = vfr_hud.airspeed;
+					telem_data.groundspeed = vfr_hud.groundspeed;
+					telem_data.heading = vfr_hud.heading;
+					telem_data.altitude = vfr_hud.alt;
+					telem_data.climbrate = vfr_hud.climb;
+				} else if (msg.msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_INT) {
+					mavlink_global_position_int_t global_position;
+					mavlink_msg_global_position_int_decode(&msg, &global_position);
+
+					telem_data.lat = global_position.lat;
+					telem_data.lon = global_position.lon;
 				}
 			}
 		}

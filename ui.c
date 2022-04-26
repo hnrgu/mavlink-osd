@@ -266,8 +266,21 @@ void *render_thread_start(void *arg) {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		char buf[2048];
-		sprintf(buf, "Attitude: %f %f %f\n", telem_data.pitch, telem_data.roll, telem_data.yaw);
-
+		sprintf(buf,
+				"Attitude: %f %f %f\n"
+				"GPS: %d %d\n"
+				"Heading: %f\n"
+				"Airspeed: %f\n"
+				"Groundspeed: %f\n"
+				"Altitude: %f\n"
+				"Climb rate: %f",
+				telem_data.pitch, telem_data.roll, telem_data.yaw,
+				telem_data.lat, telem_data.lon,
+				telem_data.heading,
+				telem_data.airspeed,
+				telem_data.groundspeed,
+				telem_data.altitude,
+				telem_data.climbrate);
 		font_render(buf, 0, 0);
 
 		eglSwapBuffers(egl_display, egl_surface);
