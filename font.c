@@ -147,13 +147,13 @@ void font_render(const char *text, uint8_t align) {
 
 	render_push_matrix();
 	if (align & FONT_ALIGN_H_CENTER) {
-		render_translate(-max_len * GLYPH_WIDTH / 2.0, 0);
+		render_translate(-max_len * GLYPH_WIDTH / 2, 0);
 	} else if (align & FONT_ALIGN_H_RIGHT) {
 		render_translate(-max_len * GLYPH_WIDTH, 0);
 	}
 
 	if (align & FONT_ALIGN_V_CENTER) {
-		render_translate(0, -line_count * GLYPH_HEIGHT / 2.0);
+		render_translate(0, -line_count * GLYPH_HEIGHT / 2);
 	} else if (align & FONT_ALIGN_V_BOTTOM) {
 		render_translate(0, -line_count * GLYPH_HEIGHT);
 	}
@@ -161,7 +161,7 @@ void font_render(const char *text, uint8_t align) {
 	for (int i = 0; i < line_count; i ++) {
 		if (align & FONT_ALIGN_H_CENTER) {
 			render_push_matrix();
-			render_translate((max_len - strlen(lines[i])) * GLYPH_WIDTH / 2.0, 0);
+			render_translate((max_len - strlen(lines[i])) * GLYPH_WIDTH / 2, 0);
 		} else if (align & FONT_ALIGN_H_RIGHT) {
 			render_push_matrix();
 			render_translate((max_len - strlen(lines[i])) * GLYPH_WIDTH, 0);
