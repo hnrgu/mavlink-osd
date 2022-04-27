@@ -307,14 +307,12 @@ void *render_thread_start(void *arg) {
 		sprintf(buf,
 				"Attitude: %f %f %f\n"
 				"GPS: %d %d\n"
-				"Heading: %f\n"
 				"Airspeed: %f\n"
 				"Groundspeed: %f\n"
 				"Altitude: %f\n"
 				"Climb rate: %f",
 				telem_data.pitch, telem_data.roll, (telem_data.yaw) / M_PI * 180,
 				telem_data.lat, telem_data.lon,
-				telem_data.heading,
 				telem_data.airspeed,
 				telem_data.groundspeed,
 				telem_data.altitude,

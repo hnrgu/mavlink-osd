@@ -95,7 +95,6 @@ int main(int argc, char *argv[]) {
 
 					telem_data.airspeed = vfr_hud.airspeed;
 					telem_data.groundspeed = vfr_hud.groundspeed;
-					telem_data.heading = vfr_hud.heading;
 					telem_data.altitude = vfr_hud.alt;
 					telem_data.climbrate = vfr_hud.climb;
 				} else if (msg.msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_INT) {

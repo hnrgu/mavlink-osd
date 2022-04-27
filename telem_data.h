@@ -5,7 +5,6 @@ struct telem_data {
 	float roll; // rad
 	float pitch; // rad
 	float yaw; // rad
-	float heading; // deg
 	float altitude; // m, msl
 	float airspeed; // m/s
 	float groundspeed; // m/s
