@@ -159,7 +159,20 @@ void font_render(const char *text, uint8_t align) {
 	}
 
 	for (int i = 0; i < line_count; i ++) {
+		if (align & FONT_ALIGN_H_CENTER) {
+			render_push_matrix();
+			render_translate((max_len - strlen(lines[i])) * GLYPH_WIDTH / 2.0, 0);
+		} else if (align & FONT_ALIGN_H_RIGHT) {
+			render_push_matrix();
+			render_translate((max_len - strlen(lines[i])) * GLYPH_WIDTH, 0);
+		}
+
 		font_render_line(lines[i]);
+
+		if (align & (FONT_ALIGN_H_CENTER | FONT_ALIGN_H_RIGHT)) {
+			render_pop_matrix();
+		}
+
 		render_translate(0, GLYPH_HEIGHT);
 	}
 	render_pop_matrix();
