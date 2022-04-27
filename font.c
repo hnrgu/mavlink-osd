@@ -29,6 +29,7 @@ static float *buffer_uv_data;
 #define GLYPH_HEIGHT (TEXTURE_HEIGHT / 6)
 
 #define MAX_STRING_LENGTH 256
+#define MAX_STRING_LINES 64
 
 #define BUF_ELEM_FLOATS 12
 #define BUF_ELEM_BYTES (sizeof(GLfloat) * BUF_ELEM_FLOATS)
@@ -74,57 +75,92 @@ void font_init() {
 	buffer_size = MAX_STRING_LENGTH * sizeof(GLfloat) * 8;
 }
 
-void font_render(const char *text) {
+void font_render_line(const char *text) {
 	shader_enable(&font_program);
-	size_t slen = strlen(text);
+	size_t len = strlen(text);
+	if(len > MAX_STRING_LENGTH) {
+		len = MAX_STRING_LENGTH;
+	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, buffer_pos);
 	glVertexAttribPointer(a_pos, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(a_pos);
 
-	float y = 0;
-	for (size_t i = 0; i < slen; ++i) {
-		int len = 0;
-		for (; i < slen && len <= MAX_STRING_LENGTH; ++i, ++len) {
-			char c = text[i];
-			if(c == '\n') break;
-			if(c < 32 || c > 126) {
-				c = ' ';
-			}
-			c -= ' ';
-			float u = c % 16;
-			float v = c / 16;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 0] = u;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 1] = v;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 2] = u;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 3] = v + 1;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 4] = u + 1;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 5] = v;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 6] = u;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 7] = v + 1;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 8] = u + 1;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 9] = v;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 10] = u + 1;
-			buffer_uv_data[len * BUF_ELEM_FLOATS + 11] = v + 1;
+	for(size_t i = 0; i < len; ++i) {
+		char c = text[i];
+		if(c < 32 || c > 126) {
+			c = ' ';
 		}
-
-		glBindBuffer(GL_ARRAY_BUFFER, buffer_uv);
-		glBufferData(GL_ARRAY_BUFFER, len * BUF_ELEM_BYTES, buffer_uv_data, GL_DYNAMIC_DRAW);
-		glVertexAttribPointer(a_uv, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-		glEnableVertexAttribArray(a_uv);
-
-		render_push_matrix();
-		render_translate(0, y);
-		render_scale(GLYPH_WIDTH, GLYPH_HEIGHT);
-		glUniformMatrix3fv(u_transform, 1, GL_FALSE, &render_current_transform);
-		render_pop_matrix();
-
-		shader_enable(&font_program);
-		glUniform4fv(u_color, 1, &render_current_color);
-
-		texture_bind(&font_texture, u_texture);
-		glDrawArrays(GL_TRIANGLES, 0, len * 6);
-
-		y += GLYPH_HEIGHT;
+		c -= ' ';
+		float u = c % 16;
+		float v = c / 16;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 0] = u;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 1] = v;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 2] = u;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 3] = v + 1;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 4] = u + 1;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 5] = v;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 6] = u;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 7] = v + 1;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 8] = u + 1;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 9] = v;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 10] = u + 1;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 11] = v + 1;
 	}
+
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_uv);
+	glBufferData(GL_ARRAY_BUFFER, len * BUF_ELEM_BYTES, buffer_uv_data, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(a_uv, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(a_uv);
+
+	render_push_matrix();
+	render_scale(GLYPH_WIDTH, GLYPH_HEIGHT);
+	glUniformMatrix3fv(u_transform, 1, GL_FALSE, &render_current_transform);
+	render_pop_matrix();
+
+	shader_enable(&font_program);
+	glUniform4fv(u_color, 1, &render_current_color);
+
+	texture_bind(&font_texture, u_texture);
+	glDrawArrays(GL_TRIANGLES, 0, len * 6);
+}
+
+void font_render(const char *text, uint8_t align) {
+	int len = strlen(text);
+	char buf[len + 1];
+	strcpy(buf, text);
+	buf[len] = 0;
+
+	const char *lines[MAX_STRING_LINES];
+	int line_count = 0;
+	int max_len = 0;
+
+	char *token = strtok(buf, "\n");
+	while (token) {
+		int line_len = strlen(token);
+		if (line_len > max_len) max_len = line_len;
+
+		lines[line_count ++] = token;
+		if (line_count >= MAX_STRING_LINES) break;
+		token = strtok(NULL, "\n");
+	}
+
+	render_push_matrix();
+	if (align & FONT_ALIGN_H_CENTER) {
+		render_translate(-max_len * GLYPH_WIDTH / 2.0, 0);
+	} else if (align & FONT_ALIGN_H_RIGHT) {
+		render_translate(-max_len * GLYPH_WIDTH, 0);
+	}
+
+	if (align & FONT_ALIGN_V_CENTER) {
+		render_translate(0, -line_count * GLYPH_HEIGHT / 2.0);
+	} else if (align & FONT_ALIGN_V_BOTTOM) {
+		render_translate(0, -line_count * GLYPH_HEIGHT);
+	}
+
+	for (int i = 0; i < line_count; i ++) {
+		font_render_line(lines[i]);
+		render_translate(0, GLYPH_HEIGHT);
+	}
+	render_pop_matrix();
 }

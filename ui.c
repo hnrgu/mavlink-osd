@@ -303,7 +303,10 @@ void *render_thread_start(void *arg) {
 
 		render_set_color(1, 0, 1, 1);
 
-		font_render(buf);
+		render_push_matrix();
+		render_translate(360, 288);
+		font_render(buf, FONT_ALIGN_H_CENTER | FONT_ALIGN_V_CENTER);
+		render_pop_matrix();
 
 		render_set_color(1, 0, 0, 0.5);
 
