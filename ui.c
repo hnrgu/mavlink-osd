@@ -22,6 +22,8 @@
 #include "shader.h"
 #include "texture.h"
 #include "font.h"
+#include "render.h"
+#include "shape.h"
 
 static void log_egl_details(EGLDisplay egl_display, EGLConfig egl_conf) {
 	printf("EGL Client APIs: %s\n", eglQueryString(egl_display, EGL_CLIENT_APIS));
@@ -94,6 +96,7 @@ static void log_egl_details(EGLDisplay egl_display, EGLConfig egl_conf) {
 	}
 }
 
+#include <math.h>
 
 void *render_thread_start(void *arg) {
 	Display *x_display = XOpenDisplay(NULL);
@@ -114,7 +117,7 @@ void *render_thread_start(void *arg) {
 	swa.event_mask  =  ExposureMask | ButtonPressMask | KeyPressMask;
 
 	Window win = XCreateWindow(x_display, root,
-	                           0, 0, root_w, root_h, 0,
+	                           0, 0, 720 / 2, 576 / 2, 0,
 	                           CopyFromParent, InputOutput,
 	                           CopyFromParent, CWEventMask,
 	                           &swa);
@@ -191,9 +194,10 @@ void *render_thread_start(void *arg) {
 			EGL_RED_SIZE, 8,
 			EGL_GREEN_SIZE, 8,
 			EGL_BLUE_SIZE, 8,
-			EGL_ALPHA_SIZE, 0,
+			EGL_ALPHA_SIZE, 8,
 			EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
 			EGL_CONFIG_CAVEAT, EGL_NONE,
+			EGL_SAMPLES, 4,
 			EGL_NONE
 	};
 
@@ -255,13 +259,28 @@ void *render_thread_start(void *arg) {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	font_init();
+	shape_init();
+
+	struct shape_context shape;
+	shape_new(&shape);
+
+	glLineWidth(2);
 
 	// render loop
 	for (;;) {
 		XWindowAttributes gwa;
 		XGetWindowAttributes(x_display, win, &gwa);
-		glViewport(0, 0, gwa.width, gwa.height);
-		font_window_size(gwa.width, gwa.height);
+
+		gwa.width = 720;
+		gwa.height = 576;
+
+		float width = 720;
+		float height = 576;
+
+		glViewport(0, 0, gwa.width / 2, gwa.height / 2);
+
+		render_load_identity();
+		render_ortho(0, gwa.width, gwa.height, 0);
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -274,14 +293,44 @@ void *render_thread_start(void *arg) {
 				"Groundspeed: %f\n"
 				"Altitude: %f\n"
 				"Climb rate: %f",
-				telem_data.pitch, telem_data.roll, telem_data.yaw,
+				telem_data.pitch, telem_data.roll, (telem_data.yaw) / M_PI * 180,
 				telem_data.lat, telem_data.lon,
 				telem_data.heading,
 				telem_data.airspeed,
 				telem_data.groundspeed,
 				telem_data.altitude,
 				telem_data.climbrate);
-		font_render(buf, 0, 0);
+
+		render_set_color(1, 0, 1, 1);
+
+		font_render(buf);
+
+		render_set_color(1, 0, 0, 0.5);
+
+		render_push_matrix();
+
+		render_translate(width / 2, height / 2);
+
+		render_rotate(-telem_data.roll);
+		render_translate(0, telem_data.pitch / M_PI * 180 * 5);
+		shape_begin(&shape, GL_LINES);
+		for(int i = -5; i <= 5; ++i) {
+			shape_vertex(&shape, -100, i * 50);
+			shape_vertex(&shape, 100, i * 50);
+		}
+		shape_end(&shape);
+		shape_draw(&shape);
+
+		shape_begin(&shape, GL_TRIANGLE_STRIP);
+		shape_vertex(&shape, 0, 0);
+		shape_vertex(&shape, 10, 10);
+		shape_vertex(&shape, 20, 40);
+		shape_vertex(&shape, 100, 0);
+		shape_end(&shape);
+
+		shape_draw(&shape);
+
+		render_pop_matrix();
 
 		eglSwapBuffers(egl_display, egl_surface);
 	}

@@ -33,7 +33,6 @@ int set_message_interval(int fd, int cmd, int us) {
 }
 
 int main(int argc, char *argv[]) {
-	/*
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s [tty]\n", argv[0]);
 		return 1;
@@ -57,14 +56,10 @@ int main(int argc, char *argv[]) {
 		perror("tcsetattr");
 		return 1;
 	}
-	*/
-	int fd = 1;
 
 	OK(set_message_interval(fd, MAVLINK_MSG_ID_ATTITUDE, 33333) == -1);
 	OK(set_message_interval(fd, MAVLINK_MSG_ID_VFR_HUD, 33333) == -1);
 	OK(set_message_interval(fd, MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 1000000) == -1);
-
-	fd = 0;
 
 	telem_init();
 

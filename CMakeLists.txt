@@ -3,12 +3,14 @@ cmake_minimum_required(VERSION 3.16)
 project(mavlink-osd C)
 
 set(PROJECT_SOURCES
-	main.c ui.c shader.c texture.c font.c telem_data.c
+	main.c ui.c shader.c texture.c font.c telem_data.c widget.c render.c shape.c
 )
 
 set(RESOURCES
 	shaders/font.frag
 	shaders/font.vert
+	shaders/solid.frag
+	shaders/solid.vert
 	fonts/font.rgba
 )
 
@@ -26,4 +28,4 @@ endforeach()
 add_executable(main ${PROJECT_SOURCES})
 target_include_directories(main PUBLIC c_library_v2)
 target_compile_options(main PUBLIC -Wno-address-of-packed-member)
-target_link_libraries(main GLESv2 EGL X11)
+target_link_libraries(main GLESv2 EGL X11 m)

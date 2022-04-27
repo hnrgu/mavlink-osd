@@ -2,6 +2,7 @@
 
 #include "shader.h"
 #include "texture.h"
+#include "render.h"
 
 #include <GLES2/gl2.h>
 #include <string.h>
@@ -13,19 +14,13 @@ static GLint a_pos;
 static GLint a_uv;
 
 static GLint u_texture;
-
-static GLint u_screen_size;
+static GLint u_transform;
 static GLint u_color;
-static GLint u_offset;
-static GLint u_scale;
 
 static struct program font_program;
 static struct texture font_texture;
 
 static float *buffer_uv_data;
-
-static float r = 1, g = 1, b = 1, a = 1;
-static float scale = 2;
 
 #define TEXTURE_WIDTH 208
 #define TEXTURE_HEIGHT 162
@@ -49,10 +44,7 @@ void font_init() {
 	a_uv = glGetAttribLocation(font_program.id, "a_uv");
 
 	u_texture = glGetUniformLocation(font_program.id, "u_texture");
-	u_screen_size = glGetUniformLocation(font_program.id, "u_screen_size");
 	u_color = glGetUniformLocation(font_program.id, "u_color");
-	u_offset = glGetUniformLocation(font_program.id, "u_offset");
-	u_scale = glGetUniformLocation(font_program.id, "u_scale");
 
 	GLint buffer_size = MAX_STRING_LENGTH * BUF_ELEM_BYTES;
 
@@ -81,23 +73,7 @@ void font_init() {
 	buffer_size = MAX_STRING_LENGTH * sizeof(GLfloat) * 8;
 }
 
-void font_window_size(GLfloat width, GLfloat height) {
-	shader_enable(&font_program);
-	glUniform2f(u_screen_size, width, height);
-}
-
-void font_color(float new_r, float new_g, float new_b, float new_a) {
-	r = new_r;
-	g = new_g;
-	b = new_b;
-	a = new_a;
-}
-
-void font_scale(float new_scale) {
-	scale = new_scale;
-}
-
-void font_render(const char *text, float x, float y) {
+void font_render(const char *text) {
 	shader_enable(&font_program);
 	size_t slen = strlen(text);
 
@@ -105,6 +81,7 @@ void font_render(const char *text, float x, float y) {
 	glVertexAttribPointer(a_pos, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(a_pos);
 
+	float y = 0;
 	for (size_t i = 0; i < slen; ++i) {
 		int len = 0;
 		for (; i < slen && len <= MAX_STRING_LENGTH; ++i, ++len) {
@@ -135,11 +112,14 @@ void font_render(const char *text, float x, float y) {
 		glVertexAttribPointer(a_uv, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 		glEnableVertexAttribArray(a_uv);
 
-		glUniform2f(u_offset, x, y);
-		glUniform2f(u_scale, GLYPH_WIDTH * scale, GLYPH_HEIGHT * scale);
+		render_push_matrix();
+		render_translate(0, y);
+		render_scale(GLYPH_WIDTH, GLYPH_HEIGHT);
+		glUniformMatrix3fv(u_transform, 1, GL_FALSE, &render_current_transform);
+		render_pop_matrix();
 
 		shader_enable(&font_program);
-		glUniform4f(u_color, r, g, b, a);
+		glUniform4fv(u_color, 1, &render_current_color);
 
 		texture_bind(&font_texture, u_texture);
 		glDrawArrays(GL_TRIANGLES, 0, len * 6);
