@@ -40,11 +40,12 @@ void font_init() {
 	texture_init(&font_texture, GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE);
 	TEXTURE_DATA_LOAD(&font_texture, _binary_fonts_font_rgba, TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
-	a_pos = glGetAttribLocation(font_program.id, "a_pos");
-	a_uv = glGetAttribLocation(font_program.id, "a_uv");
+	a_pos = shader_get_attrib(&font_program, "a_pos");
+	a_uv = shader_get_attrib(&font_program, "a_uv");
 
-	u_texture = glGetUniformLocation(font_program.id, "u_texture");
-	u_color = glGetUniformLocation(font_program.id, "u_color");
+	u_transform = shader_get_uniform(&font_program, "u_transform");
+	u_texture = shader_get_uniform(&font_program, "u_texture");
+	u_color = shader_get_uniform(&font_program, "u_color");
 
 	GLint buffer_size = MAX_STRING_LENGTH * BUF_ELEM_BYTES;
 
