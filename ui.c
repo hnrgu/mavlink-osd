@@ -100,8 +100,6 @@ static void log_egl_details(EGLDisplay egl_display, EGLConfig egl_conf) {
 	}
 }
 
-#include <math.h>
-
 void *render_thread_start(void *arg) {
 	Display *x_display = XOpenDisplay(NULL);
 	if (x_display == NULL) {
