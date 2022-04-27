@@ -25,6 +25,9 @@
 #include "render.h"
 #include "shape.h"
 
+#include "layout.h"
+#include "widgets/widget_text.h"
+
 static void log_egl_details(EGLDisplay egl_display, EGLConfig egl_conf) {
 	printf("EGL Client APIs: %s\n", eglQueryString(egl_display, EGL_CLIENT_APIS));
 	printf("EGL Vendor: %s\n", eglQueryString(egl_display, EGL_VENDOR));
@@ -260,6 +263,24 @@ void *render_thread_start(void *arg) {
 
 	font_init();
 	shape_init();
+	layout_init();
+
+	struct widget_text text;
+	widget_text_init(&text);
+	widget_text_set(&text, "test");
+
+	float transform[3][3] = {0};
+	transform[0][0] = transform[1][1] = transform[2][2] = 1;
+	layout_add(&text, transform);
+
+	struct widget_text data;
+	widget_text_init(&data);
+	data.color[0] = 0;
+	data.align = FONT_ALIGN_H_CENTER | FONT_ALIGN_V_CENTER;
+
+	transform[2][0] = 360;
+	transform[2][1] = 288;
+	layout_add(&data, transform);
 
 	struct shape_context shape;
 	shape_new(&shape);
@@ -300,13 +321,9 @@ void *render_thread_start(void *arg) {
 				telem_data.groundspeed,
 				telem_data.altitude,
 				telem_data.climbrate);
+		widget_text_set(&data, buf);
 
-		render_set_color(1, 0, 1, 1);
-
-		render_push_matrix();
-		render_translate(360, 288);
-		font_render(buf, FONT_ALIGN_H_CENTER | FONT_ALIGN_V_CENTER);
-		render_pop_matrix();
+		layout_render();
 
 		render_set_color(1, 0, 0, 0.5);
 
