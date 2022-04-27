@@ -28,6 +28,7 @@
 
 #include "layout.h"
 #include "widgets/widget_text.h"
+#include "widgets/widget_bank_indicator.h"
 
 static void log_egl_details(EGLDisplay egl_display, EGLConfig egl_conf) {
 	printf("EGL Client APIs: %s\n", eglQueryString(egl_display, EGL_CLIENT_APIS));
@@ -280,6 +281,13 @@ void *render_thread_start(void *arg) {
 	matrix_translate(360, 288, transform);
 	layout_add(&data, transform);
 
+	struct widget_bank_indicator bank;
+	widget_bank_indicator_init(&bank);
+
+	matrix_translate(360, 144, transform);
+	matrix_scale_multiply(100, 100, transform, transform);
+	layout_add(&bank, transform);
+
 	struct shape_context shape;
 	shape_new(&shape);
 
@@ -318,6 +326,8 @@ void *render_thread_start(void *arg) {
 				telem_data.altitude,
 				telem_data.climbrate);
 		widget_text_set(&data, buf);
+
+		bank.bank_angle = telem_data.roll;
 
 		layout_render();
 
