@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(mavlink-osd C)
 
 set(PROJECT_SOURCES
-	main.c ui.c shader.c texture.c font.c telem_data.c widget.c render.c shape.c layout.c widgets/widget_text.c
+	main.c ui.c shader.c texture.c font.c telem_data.c widget.c render.c shape.c matrix.c layout.c widgets/widget_text.c
 )
 
 set(RESOURCES

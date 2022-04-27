@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "matrix.h"
+
 float render_current_transform[3][3] = {
 	{1, 0, 0},
 	{0, 1, 0},
@@ -45,43 +47,19 @@ void render_load_identity() {
 }
 
 void render_transform(float transform[3][3]) {
-	float result[3][3];
-	for (int i = 0; i < 3; ++i) {
-		for (int j = 0; j < 3; ++j) {
-			result[j][i] = 0;
-			for (int k = 0; k < 3; ++k) {
-				result[j][i] += render_current_transform[k][i] * transform[j][k];
-			}
-		}
-	}
-	memcpy(render_current_transform, result, sizeof(render_current_transform));
+	matrix_multiply(render_current_transform, transform, render_current_transform);
 }
 
 void render_translate(float x, float y) {
-	float transform[3][3] = {
-			{1, 0, 0},
-			{0, 1, 0},
-			{x, y, 1}
-	};
-	render_transform(transform);
+	matrix_translate_multiply(x, y, render_current_transform, render_current_transform);
 }
 
 void render_rotate(float rotate) {
-	float transform[3][3] = {
-			{cosf(rotate), sinf(rotate), 0},
-			{-sinf(rotate), cosf(rotate), 0},
-			{0, 0, 1}
-	};
-	render_transform(transform);
+	matrix_rotate_multiply(rotate, render_current_transform, render_current_transform);
 }
 
 void render_scale(float x, float y) {
-	float transform[3][3] = {
-			{x, 0, 0},
-			{0, y, 0},
-			{0, 0, 1}
-	};
-	render_transform(transform);
+	matrix_scale_multiply(x, y, render_current_transform, render_current_transform);
 }
 
 void render_ortho(float left, float right, float bottom, float top) {

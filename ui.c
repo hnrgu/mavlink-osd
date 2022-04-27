@@ -24,6 +24,7 @@
 #include "font.h"
 #include "render.h"
 #include "shape.h"
+#include "matrix.h"
 
 #include "layout.h"
 #include "widgets/widget_text.h"
@@ -269,8 +270,8 @@ void *render_thread_start(void *arg) {
 	widget_text_init(&text);
 	widget_text_set(&text, "test");
 
-	float transform[3][3] = {0};
-	transform[0][0] = transform[1][1] = transform[2][2] = 1;
+	float transform[3][3];
+	matrix_identity(transform);
 	layout_add(&text, transform);
 
 	struct widget_text data;
@@ -278,8 +279,7 @@ void *render_thread_start(void *arg) {
 	data.color[0] = 0;
 	data.align = FONT_ALIGN_H_CENTER | FONT_ALIGN_V_CENTER;
 
-	transform[2][0] = 360;
-	transform[2][1] = 288;
+	matrix_translate(360, 288, transform);
 	layout_add(&data, transform);
 
 	struct shape_context shape;
