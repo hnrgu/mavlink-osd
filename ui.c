@@ -320,7 +320,7 @@ void *render_thread_start(void *arg) {
 	altitude.num_marks = 9;
 	altitude.mark_spacing = 50;
 	altitude.mark_length = 25;
-	altitude.mark_value = 1;
+	altitude.mark_value = 5;
 	altitude.label_period = 2;
 	altitude.label_gap = 5;
 	altitude.width = 120;

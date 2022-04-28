@@ -8,9 +8,7 @@
 #include "../render.h"
 
 static void draw(struct widget_tape *widget) {
-	float dist_per_val = widget->mark_spacing / widget->mark_value;
-
-	float s_val = widget->value * widget->round_mult + 0.5;
+	float s_val = widget->value * widget->round_mult + widget->mark_value / 2.0;
 	float d_val = s_val / widget->mark_value;
 	d_val -= floor(d_val);
 
@@ -31,7 +29,7 @@ static void draw(struct widget_tape *widget) {
 
 	render_set_color(1, 1, 1, 1);
 	render_push_matrix();
-	render_translate(0, d_val * dist_per_val);
+	render_translate(0, d_val * widget->mark_spacing);
 
 	render_push_matrix();
 	render_translate(0, -widget->mark_spacing * widget->num_marks / 2.0);
@@ -51,6 +49,7 @@ static void draw(struct widget_tape *widget) {
 
 		render_translate(0, widget->mark_spacing);
 	}
+
 	render_pop_matrix();
 
 	render_stencil_mode(RENDER_STENCIL_DISABLE);
