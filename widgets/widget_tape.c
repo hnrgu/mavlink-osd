@@ -21,6 +21,11 @@ static void draw(struct widget_tape *widget) {
 	shape_draw(&widget->stencil);
 	render_stencil_end();
 
+	render_stencil_begin(RENDER_STENCIL_SUB);
+	widget->indicator.mode = GL_TRIANGLE_FAN;
+	shape_draw(&widget->indicator);
+	render_stencil_end();
+
 	render_stencil_mode(RENDER_STENCIL_INSIDE);
 
 	render_set_color(1, 1, 1, 1);
@@ -48,10 +53,6 @@ static void draw(struct widget_tape *widget) {
 	render_pop_matrix();
 
 	render_stencil_mode(RENDER_STENCIL_DISABLE);
-
-	render_set_color(0, 0, 0, 1);
-	widget->indicator.mode = GL_TRIANGLE_FAN;
-	shape_draw(&widget->indicator);
 
 	widget->indicator.mode = GL_LINE_LOOP;
 	render_set_color(1, 1, 1, 1);
