@@ -14,6 +14,7 @@ static void draw(struct widget_tape *widget) {
 	float d_val = s_val / widget->mark_value;
 	d_val -= floor(d_val);
 
+	render_set_color(1, 1, 1, 1);
 	shape_draw(&widget->line);
 
 	render_stencil_reset();
