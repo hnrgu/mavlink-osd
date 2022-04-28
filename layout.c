@@ -39,5 +39,6 @@ void layout_render() {
 		render_transform(widgets[i].transform);
 		widgets[i].widget->draw(widgets[i].widget);
 		render_pop_matrix();
+		render_stencil_mode(RENDER_STENCIL_DISABLE);
 	}
 }

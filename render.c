@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <GLES2/gl2.h>
 
 #include "matrix.h"
 
@@ -18,6 +19,8 @@ float render_current_color[4] = {
 };
 
 #define TRANSFORM_STACK_SIZE 16
+
+static int stencil_counter;
 
 static int transform_stack_size = 0;
 static float transform_stack[TRANSFORM_STACK_SIZE][3][3];
@@ -70,3 +73,33 @@ void render_ortho(float left, float right, float bottom, float top) {
 	};
 	render_transform(transform);
 }
+
+void render_stencil_begin() {
+	render_set_color(0, 0, 0, 0);
+	if(stencil_counter >= 255) {
+		glClear(GL_STENCIL_BUFFER_BIT);
+		stencil_counter = 0;
+	}
+	stencil_counter ++;
+	glEnable(GL_STENCIL_TEST);
+	glStencilFunc(GL_ALWAYS, stencil_counter, 0xFF);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+}
+
+void render_stencil_end() {
+	glDisable(GL_STENCIL_TEST);
+}
+
+void render_stencil_mode(int mode) {
+	if(mode == RENDER_STENCIL_DISABLE) {
+		glDisable(GL_STENCIL_TEST);
+	} else {
+		glEnable(GL_STENCIL_TEST);
+		if(mode == RENDER_STENCIL_INSIDE) {
+			glStencilFunc(GL_EQUAL, stencil_counter, 0xFF);
+		} else if(mode == RENDER_STENCIL_OUTSIDE){
+			glStencilFunc(GL_NOTEQUAL, stencil_counter, 0xFF);
+		}
+	}
+}
+
