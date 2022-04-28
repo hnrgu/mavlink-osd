@@ -311,6 +311,9 @@ void *render_thread_start(void *arg) {
 	struct widget_heading_indicator heading;
 	widget_heading_indicator_init(&heading);
 
+	matrix_translate(360, 500, transform);
+	layout_add(&heading, transform);
+
 	// Altitude tape
 	struct widget_tape altitude;
 	altitude.decimals = 1;
@@ -331,9 +334,6 @@ void *render_thread_start(void *arg) {
 	matrix_translate(570, 288, transform);
 	layout_add(&altitude, transform);
 
-	matrix_translate(360, 600, transform);
-	layout_add(&heading, transform);
-
 	glLineWidth(2 * SCALE_FACTOR);
 
 	// render loop
@@ -346,7 +346,7 @@ void *render_thread_start(void *arg) {
 		render_load_identity();
 		render_ortho(0, RENDER_WIDTH, RENDER_HEIGHT, 0);
 
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 		char buf[2048];
 		sprintf(buf,

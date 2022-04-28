@@ -9,10 +9,11 @@ struct widget_attitude_indicator {
 	float attitude_pitch;
 	struct shape_context bg_half;
 	struct shape_context pitch_lines;
+	struct shape_context horizon;
+	struct shape_context center;
+	struct shape_context stencil;
 };
 
 void widget_attitude_indicator_init(struct widget_attitude_indicator *widget);
-
-void widget_attitude_indicator_set(struct widget_attitude_indicator *widget, const char *text);
 
 #endif

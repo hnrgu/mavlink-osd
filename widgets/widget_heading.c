@@ -53,6 +53,10 @@ static void draw(struct widget_heading_indicator *widget) {
 		font_render(str, FONT_ALIGN_V_TOP | FONT_ALIGN_H_CENTER);
 		render_pop_matrix();
 	}
+
+	render_set_color(0, 1, 0, 1);
+	shape_draw(&widget->needle);
+	shape_draw(&widget->needle_arrow);
 }
 
 void widget_heading_indicator_init(struct widget_heading_indicator *widget) {
@@ -61,6 +65,8 @@ void widget_heading_indicator_init(struct widget_heading_indicator *widget) {
 
 	shape_new(&widget->arc);
 	shape_new(&widget->arrow);
+	shape_new(&widget->needle);
+	shape_new(&widget->needle_arrow);
 	shape_new(&widget->marks);
 
 	shape_begin(&widget->arc, GL_LINE_LOOP);
@@ -75,6 +81,19 @@ void widget_heading_indicator_init(struct widget_heading_indicator *widget) {
 	shape_vertex(&widget->arrow, 5, -10);
 	shape_vertex(&widget->arrow, 0, 0);
 	shape_end(&widget->arrow);
+
+#define NEEDLE_OFFSET 10
+
+	shape_begin(&widget->needle, GL_LINES);
+	shape_vertex(&widget->needle, 0, -ARC_RADIUS + NEEDLE_OFFSET);
+	shape_vertex(&widget->needle, 0, ARC_RADIUS - NEEDLE_OFFSET);
+	shape_end(&widget->needle);
+
+	shape_begin(&widget->needle_arrow, GL_TRIANGLES);
+	shape_vertex(&widget->needle_arrow, 0, -ARC_RADIUS + NEEDLE_OFFSET);
+	shape_vertex(&widget->needle_arrow, -SMALL_TICK, -ARC_RADIUS + NEEDLE_OFFSET + 10);
+	shape_vertex(&widget->needle_arrow, SMALL_TICK, -ARC_RADIUS + NEEDLE_OFFSET + 10);
+	shape_end(&widget->needle_arrow);
 
 	shape_begin(&widget->marks, GL_LINES);
 	for(int i = 0; i < 36; ++i) {

@@ -16,7 +16,8 @@ static void draw(struct widget_tape *widget) {
 
 	shape_draw(&widget->line);
 
-	render_stencil_begin();
+	render_stencil_reset();
+	render_stencil_begin(RENDER_STENCIL_ADD);
 	shape_draw(&widget->stencil);
 	render_stencil_end();
 

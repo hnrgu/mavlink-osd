@@ -6,8 +6,11 @@
 struct widget_heading_indicator {
 	void (*draw)(struct widget_heading_indicator *widget);
 	float heading;
+	float direction;
 	struct shape_context arc;
 	struct shape_context arrow;
+	struct shape_context needle;
+	struct shape_context needle_arrow;
 	struct shape_context marks;
 };
 

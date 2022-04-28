@@ -74,20 +74,30 @@ void render_ortho(float left, float right, float bottom, float top) {
 	render_transform(transform);
 }
 
-void render_stencil_begin() {
-	render_set_color(0, 0, 0, 0);
+void render_stencil_reset() {
 	if(stencil_counter >= 255) {
 		glClear(GL_STENCIL_BUFFER_BIT);
 		stencil_counter = 0;
 	}
 	stencil_counter ++;
+}
+
+void render_stencil_begin(int mode) {
 	glEnable(GL_STENCIL_TEST);
-	glStencilFunc(GL_ALWAYS, stencil_counter, 0xFF);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+	if(mode == RENDER_STENCIL_ADD) {
+		glStencilFunc(GL_ALWAYS, stencil_counter, 0xFF);
+	} else if(mode == RENDER_STENCIL_SUB) {
+		glStencilFunc(GL_ALWAYS, 0, 0xFF);
+	} else {
+		assert(0 && "Unknown stencil mode");
+	}
 }
 
 void render_stencil_end() {
 	glDisable(GL_STENCIL_TEST);
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
 
 void render_stencil_mode(int mode) {
@@ -99,6 +109,8 @@ void render_stencil_mode(int mode) {
 			glStencilFunc(GL_EQUAL, stencil_counter, 0xFF);
 		} else if(mode == RENDER_STENCIL_OUTSIDE){
 			glStencilFunc(GL_NOTEQUAL, stencil_counter, 0xFF);
+		} else {
+			assert(0 && "Unknown stencil mode");
 		}
 	}
 }
