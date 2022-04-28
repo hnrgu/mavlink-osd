@@ -4,7 +4,7 @@ project(mavlink-osd C)
 
 set(PROJECT_SOURCES
 	main.c ui.c shader.c texture.c font.c telem_data.c widget.c render.c shape.c matrix.c layout.c
-	widgets/widget_text.c widgets/widget_bank_indicator.c widgets/widget_attitude.c widgets/widget_heading.c
+	widgets/widget_text.c widgets/widget_bank_indicator.c widgets/widget_attitude.c widgets/widget_heading.c widgets/widget_tape.c
 )
 
 set(RESOURCES

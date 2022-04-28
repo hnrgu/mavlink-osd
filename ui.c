@@ -31,6 +31,7 @@
 #include "widgets/widget_bank_indicator.h"
 #include "widgets/widget_attitude.h"
 #include "widgets/widget_heading.h"
+#include "widgets/widget_tape.h"
 
 #define RENDER_WIDTH 720
 #define RENDER_HEIGHT 576
@@ -310,6 +311,26 @@ void *render_thread_start(void *arg) {
 	struct widget_heading_indicator heading;
 	widget_heading_indicator_init(&heading);
 
+	// Altitude tape
+	struct widget_tape altitude;
+	altitude.decimals = 1;
+	altitude.num_marks = 9;
+	altitude.mark_spacing = 50;
+	altitude.mark_length = 25;
+	altitude.mark_value = 1;
+	altitude.label_period = 2;
+	altitude.label_gap = 5;
+	altitude.width = 120;
+	altitude.arrow_width = 8;
+	altitude.arrow_height = 10;
+	altitude.indicator_width = 72;
+	altitude.indicator_height = 32;
+	altitude.indicator_gap = 3;
+	widget_tape_init(&altitude);
+
+	matrix_translate(570, 288, transform);
+	layout_add(&altitude, transform);
+
 	matrix_translate(360, 600, transform);
 	layout_add(&heading, transform);
 
@@ -347,6 +368,8 @@ void *render_thread_start(void *arg) {
 		attitude.attitude_pitch = telem_data.pitch;
 		attitude.attitude_roll = telem_data.roll;
 		heading.heading = telem_data.yaw;
+
+		altitude.value = telem_data.altitude;
 
 		layout_render();
 
