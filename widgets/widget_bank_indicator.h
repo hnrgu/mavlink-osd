@@ -13,6 +13,4 @@ struct widget_bank_indicator {
 
 void widget_bank_indicator_init(struct widget_bank_indicator *widget);
 
-void widget_bank_indicator_set(struct widget_bank_indicator *widget, const char *text);
-
 #endif

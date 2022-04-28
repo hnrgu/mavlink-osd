@@ -29,6 +29,12 @@
 #include "layout.h"
 #include "widgets/widget_text.h"
 #include "widgets/widget_bank_indicator.h"
+#include "widgets/widget_attitude.h"
+#include "widgets/widget_heading.h"
+
+#define RENDER_WIDTH 720
+#define RENDER_HEIGHT 576
+#define SCALE_FACTOR 1
 
 static void log_egl_details(EGLDisplay egl_display, EGLConfig egl_conf) {
 	printf("EGL Client APIs: %s\n", eglQueryString(egl_display, EGL_CLIENT_APIS));
@@ -120,7 +126,7 @@ void *render_thread_start(void *arg) {
 	swa.event_mask  =  ExposureMask | ButtonPressMask | KeyPressMask;
 
 	Window win = XCreateWindow(x_display, root,
-	                           0, 0, 720 / 2, 576 / 2, 0,
+	                           0, 0, RENDER_WIDTH * SCALE_FACTOR, RENDER_HEIGHT * SCALE_FACTOR, 0,
 	                           CopyFromParent, InputOutput,
 	                           CopyFromParent, CWEventMask,
 	                           &swa);
@@ -265,11 +271,21 @@ void *render_thread_start(void *arg) {
 	shape_init();
 	layout_init();
 
+	float transform[3][3];
+
+	// Attitude indicator
+	struct widget_attitude_indicator attitude;
+	widget_attitude_indicator_init(&attitude);
+
+	matrix_identity(transform);
+	matrix_translate(360, 288, transform);
+	layout_add(&attitude, transform);
+
+	// Text
 	struct widget_text text;
 	widget_text_init(&text);
 	widget_text_set(&text, "test");
 
-	float transform[3][3];
 	matrix_identity(transform);
 	layout_add(&text, transform);
 
@@ -281,6 +297,7 @@ void *render_thread_start(void *arg) {
 	matrix_translate(360, 288, transform);
 	layout_add(&data, transform);
 
+	// Bank indicator
 	struct widget_bank_indicator bank;
 	widget_bank_indicator_init(&bank);
 
@@ -288,26 +305,24 @@ void *render_thread_start(void *arg) {
 	matrix_scale_multiply(100, 100, transform, transform);
 	layout_add(&bank, transform);
 
-	struct shape_context shape;
-	shape_new(&shape);
+	// Heading indicator
+	struct widget_heading_indicator heading;
+	widget_heading_indicator_init(&heading);
 
-	glLineWidth(2);
+	matrix_translate(360, 600, transform);
+	layout_add(&heading, transform);
+
+	glLineWidth(2 * SCALE_FACTOR);
 
 	// render loop
 	for (;;) {
 		XWindowAttributes gwa;
 		XGetWindowAttributes(x_display, win, &gwa);
 
-		gwa.width = 720;
-		gwa.height = 576;
-
-		float width = 720;
-		float height = 576;
-
-		glViewport(0, 0, gwa.width / 2, gwa.height / 2);
+		glViewport(0, 0, RENDER_WIDTH * SCALE_FACTOR, RENDER_HEIGHT * SCALE_FACTOR);
 
 		render_load_identity();
-		render_ortho(0, gwa.width, gwa.height, 0);
+		render_ortho(0, RENDER_WIDTH, RENDER_HEIGHT, 0);
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -328,35 +343,11 @@ void *render_thread_start(void *arg) {
 		widget_text_set(&data, buf);
 
 		bank.bank_angle = telem_data.roll;
+		attitude.attitude_pitch = telem_data.pitch;
+		attitude.attitude_roll = telem_data.roll;
+		heading.heading = telem_data.yaw;
 
 		layout_render();
-
-		render_set_color(1, 0, 0, 0.5);
-
-		render_push_matrix();
-
-		render_translate(width / 2, height / 2);
-
-		render_rotate(-telem_data.roll);
-		render_translate(0, telem_data.pitch / M_PI * 180 * 5);
-		shape_begin(&shape, GL_LINES);
-		for(int i = -5; i <= 5; ++i) {
-			shape_vertex(&shape, -100, i * 50);
-			shape_vertex(&shape, 100, i * 50);
-		}
-		shape_end(&shape);
-		shape_draw(&shape);
-
-		shape_begin(&shape, GL_TRIANGLE_STRIP);
-		shape_vertex(&shape, 0, 0);
-		shape_vertex(&shape, 10, 10);
-		shape_vertex(&shape, 20, 40);
-		shape_vertex(&shape, 100, 0);
-		shape_end(&shape);
-
-		shape_draw(&shape);
-
-		render_pop_matrix();
 
 		eglSwapBuffers(egl_display, egl_surface);
 	}

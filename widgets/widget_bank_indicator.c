@@ -10,16 +10,18 @@ static const int mark_size[] = { 2, 1, 1, 2, 1, 2 };
 
 #define ARC_SEGMENTS 20
 #define MARKS_SCALE 0.1
-#define ARROW_SIZE 0.2
+#define ARROW_SIZE 0.15
 
 static void draw(struct widget_bank_indicator *widget) {
 	render_set_color(1, 1, 1, 1);
-	shape_draw(&widget->arc);
-	shape_draw(&widget->marks);
-
-	render_rotate(-widget->bank_angle);
+	render_push_matrix();
 	render_translate(0, -1);
 	shape_draw(&widget->arrow);
+	render_pop_matrix();
+
+	render_rotate(-widget->bank_angle);
+	shape_draw(&widget->arc);
+	shape_draw(&widget->marks);
 }
 
 void widget_bank_indicator_init(struct widget_bank_indicator *widget) {
