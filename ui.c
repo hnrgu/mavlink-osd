@@ -329,10 +329,32 @@ void *render_thread_start(void *arg) {
 	altitude.indicator_width = 72;
 	altitude.indicator_height = 32;
 	altitude.indicator_gap = 3;
+	altitude.direction = 0;
 	widget_tape_init(&altitude);
 
 	matrix_translate(570, 288, transform);
 	layout_add(&altitude, transform);
+
+	// Air speed tape
+	struct widget_tape airspeed;
+	airspeed.decimals = 1;
+	airspeed.num_marks = 9;
+	airspeed.mark_spacing = 50;
+	airspeed.mark_length = 25;
+	airspeed.mark_value = 10;
+	airspeed.label_period = 2;
+	airspeed.label_gap = 5;
+	airspeed.width = 120;
+	airspeed.arrow_width = 8;
+	airspeed.arrow_height = 10;
+	airspeed.indicator_width = 72;
+	airspeed.indicator_height = 32;
+	airspeed.indicator_gap = 3;
+	airspeed.direction = 1;
+	widget_tape_init(&airspeed);
+
+	matrix_translate(150, 288, transform);
+	layout_add(&airspeed, transform);
 
 	glLineWidth(2 * SCALE_FACTOR);
 
@@ -370,6 +392,8 @@ void *render_thread_start(void *arg) {
 		heading.heading = telem_data.yaw;
 
 		altitude.value = telem_data.altitude;
+
+		airspeed.value = telem_data.airspeed;
 
 		layout_render();
 

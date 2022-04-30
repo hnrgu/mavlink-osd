@@ -12,6 +12,9 @@ static void draw(struct widget_tape *widget) {
 	float d_val = s_val / widget->mark_value;
 	d_val -= floor(d_val);
 
+	if (widget->direction) {
+		render_scale(-1, 1);
+	}
 	render_set_color(1, 1, 1, 1);
 	shape_draw(&widget->line);
 
@@ -37,6 +40,9 @@ static void draw(struct widget_tape *widget) {
 	render_pop_matrix();
 
 	render_translate(widget->mark_length + widget->label_gap, -widget->mark_spacing * (widget->num_marks / 2.0));
+	if (widget->direction) {
+		render_scale(-1, 1);
+	}
 	for (int i = 0; i < widget->num_marks; i ++) {
 		int ind = (-i + widget->num_marks / 2 + floor(s_val / widget->mark_value));
 
@@ -44,7 +50,12 @@ static void draw(struct widget_tape *widget) {
 			float val = widget->mark_value * (float) ind / widget->round_mult;
 			char buf[16];
 			snprintf(buf, sizeof(buf), "%.*f", widget->decimals, val);
-			font_render(buf, FONT_ALIGN_H_LEFT | FONT_ALIGN_V_CENTER);
+
+			if (!widget->direction) {
+				font_render(buf, FONT_ALIGN_H_LEFT | FONT_ALIGN_V_CENTER);
+			} else {
+				font_render(buf, FONT_ALIGN_H_RIGHT | FONT_ALIGN_V_CENTER);
+			}
 		}
 
 		render_translate(0, widget->mark_spacing);
@@ -59,9 +70,16 @@ static void draw(struct widget_tape *widget) {
 	shape_draw(&widget->indicator);
 
 	render_translate(widget->mark_length + widget->arrow_width + widget->indicator_gap, 0);
+	if (widget->direction) {
+		render_scale(-1, 1);
+	}
 	char buf[16];
 	snprintf(buf, sizeof(buf), "%.*f", widget->decimals, widget->value);
-	font_render(buf, FONT_ALIGN_H_LEFT | FONT_ALIGN_V_CENTER);
+	if (!widget->direction) {
+		font_render(buf, FONT_ALIGN_H_LEFT | FONT_ALIGN_V_CENTER);
+	} else {
+		font_render(buf, FONT_ALIGN_H_RIGHT | FONT_ALIGN_V_CENTER);
+	}
 }
 
 void widget_tape_init(struct widget_tape *widget) {

@@ -25,6 +25,7 @@ struct widget_tape {
 	int indicator_width; // width of indicator in pixels
 	int indicator_height; // height of indicator in pixels
 	int indicator_gap; // number of pixels between indicator and text
+	int direction; // 0 for text on right, 1 for text on left
 	float value;
 };
 
