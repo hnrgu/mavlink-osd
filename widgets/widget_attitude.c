@@ -36,11 +36,16 @@ static void draw(struct widget_attitude_indicator *widget) {
 	render_set_color(1, 1, 1, 1);
 	shape_draw(&widget->center);
 
+	float ang_deg = widget->attitude_pitch / M_PI * 180;
 	render_rotate(-widget->attitude_roll);
-	render_translate(0, widget->attitude_pitch / M_PI * 180 * 10);
+	render_translate(0, ang_deg * 10);
 
 	render_stencil_mode(RENDER_STENCIL_INSIDE);
-	for(int i = -9; i < 9; ++i) {
+	int min = -ang_deg / 10 - 3;
+	int max = -ang_deg / 10 + 3;
+	if(min < -9) min = -9;
+	if(max > 9) max = 9;
+	for(int i = min; i <= max; ++i) {
 		if(i == 0) {
 			continue;
 		}

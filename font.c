@@ -9,8 +9,11 @@
 
 static GLuint buffer_pos;
 static GLuint buffer_uv;
+static GLuint buffer_char;
+static GLuint buffer_index;
 
 static GLint a_pos;
+static GLint a_char;
 static GLint a_uv;
 
 static GLint u_texture;
@@ -20,7 +23,7 @@ static GLint u_color;
 static struct program font_program;
 static struct texture font_texture;
 
-static float *buffer_uv_data;
+static uint32_t *buffer_char_data;
 
 #define TEXTURE_WIDTH 208
 #define TEXTURE_HEIGHT 162
@@ -31,8 +34,9 @@ static float *buffer_uv_data;
 #define MAX_STRING_LENGTH 256
 #define MAX_STRING_LINES 64
 
-#define BUF_ELEM_FLOATS 12
-#define BUF_ELEM_BYTES (sizeof(GLfloat) * BUF_ELEM_FLOATS)
+#define BUF_ELEM_FLOATS 8
+
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 void font_init() {
 	SHADER_LOAD(&font_program, _binary_shaders_font_vert, _binary_shaders_font_frag);
@@ -45,14 +49,18 @@ void font_init() {
 
 	a_pos = shader_get_attrib(&font_program, "a_pos");
 	a_uv = shader_get_attrib(&font_program, "a_uv");
+	a_char = shader_get_attrib(&font_program, "a_char");
 
 	u_transform = shader_get_uniform(&font_program, "u_transform");
 	u_texture = shader_get_uniform(&font_program, "u_texture");
 	u_color = shader_get_uniform(&font_program, "u_color");
 
-	GLint buffer_size = MAX_STRING_LENGTH * BUF_ELEM_BYTES;
+	GLint data_buffer_size = MAX_STRING_LENGTH * BUF_ELEM_FLOATS * sizeof(GLfloat);
+	GLint index_buffer_size = MAX_STRING_LENGTH * 6 * sizeof(GLushort);
 
-	float *buffer_pos_data = malloc(buffer_size);
+	float *data_buffer = malloc(MAX(data_buffer_size, index_buffer_size));
+
+	float *buffer_pos_data = data_buffer;
 	glGenBuffers(1, &buffer_pos);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer_pos);
 	for(unsigned i = 0; i < MAX_STRING_LENGTH; i++) {
@@ -62,19 +70,42 @@ void font_init() {
 		buffer_pos_data[i * BUF_ELEM_FLOATS + 3] = 1;
 		buffer_pos_data[i * BUF_ELEM_FLOATS + 4] = i + 1;
 		buffer_pos_data[i * BUF_ELEM_FLOATS + 5] = 0;
-		buffer_pos_data[i * BUF_ELEM_FLOATS + 6] = i;
+		buffer_pos_data[i * BUF_ELEM_FLOATS + 6] = i + 1;
 		buffer_pos_data[i * BUF_ELEM_FLOATS + 7] = 1;
-		buffer_pos_data[i * BUF_ELEM_FLOATS + 8] = i + 1;
-		buffer_pos_data[i * BUF_ELEM_FLOATS + 9] = 0;
-		buffer_pos_data[i * BUF_ELEM_FLOATS + 10] = i + 1;
-		buffer_pos_data[i * BUF_ELEM_FLOATS + 11] = 1;
 	}
-	glBufferData(GL_ARRAY_BUFFER, buffer_size, buffer_pos_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, data_buffer_size, buffer_pos_data, GL_STATIC_DRAW);
 
-	buffer_uv_data = buffer_pos_data; // Buffer reuse;
+	GLfloat *buffer_uv_data = data_buffer; // Buffer reuse
 	glGenBuffers(1, &buffer_uv);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer_uv);
-	buffer_size = MAX_STRING_LENGTH * sizeof(GLfloat) * 8;
+	for(size_t i = 0; i < MAX_STRING_LENGTH; ++i) {
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 0] = 0;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 1] = 0;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 2] = 0;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 3] = 1;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 4] = 1;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 5] = 0;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 6] = 1;
+		buffer_uv_data[i * BUF_ELEM_FLOATS + 7] = 1;
+	}
+	glBufferData(GL_ARRAY_BUFFER, data_buffer_size, buffer_uv_data, GL_STATIC_DRAW);
+
+	GLushort *buffer_index_data = data_buffer; // Buffer reuse
+	glGenBuffers(1, &buffer_index);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer_index);
+	for(unsigned i = 0; i < MAX_STRING_LENGTH; i++) {
+		buffer_index_data[i * 6 + 0] = i * 4 + 0;
+		buffer_index_data[i * 6 + 1] = i * 4 + 1;
+		buffer_index_data[i * 6 + 2] = i * 4 + 2;
+		buffer_index_data[i * 6 + 3] = i * 4 + 1;
+		buffer_index_data[i * 6 + 4] = i * 4 + 2;
+		buffer_index_data[i * 6 + 5] = i * 4 + 3;
+	}
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, index_buffer_size, buffer_index_data, GL_STATIC_DRAW);
+
+	buffer_char_data = data_buffer; // Buffer reuse
+	glGenBuffers(1, &buffer_char);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_char);
 }
 
 void font_render_line(const char *text) {
@@ -93,25 +124,15 @@ void font_render_line(const char *text) {
 		if(c < 32 || c > 126) {
 			c = ' ';
 		}
-		c -= ' ';
-		float u = c % 16;
-		float v = c / 16;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 0] = u;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 1] = v;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 2] = u;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 3] = v + 1;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 4] = u + 1;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 5] = v;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 6] = u;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 7] = v + 1;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 8] = u + 1;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 9] = v;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 10] = u + 1;
-		buffer_uv_data[i * BUF_ELEM_FLOATS + 11] = v + 1;
+		buffer_char_data[i] = c << 24 | c << 16 | c << 8 | c;
 	}
 
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_char);
+	glBufferData(GL_ARRAY_BUFFER, len * 4, buffer_char_data, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(a_char, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(a_char);
+
 	glBindBuffer(GL_ARRAY_BUFFER, buffer_uv);
-	glBufferData(GL_ARRAY_BUFFER, len * BUF_ELEM_BYTES, buffer_uv_data, GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(a_uv, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(a_uv);
 
@@ -123,8 +144,9 @@ void font_render_line(const char *text) {
 	shader_enable(&font_program);
 	glUniform4fv(u_color, 1, &render_current_color);
 
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer_index);
 	texture_bind(&font_texture, u_texture);
-	glDrawArrays(GL_TRIANGLES, 0, len * 6);
+	glDrawElements(GL_TRIANGLES, len * 6, GL_UNSIGNED_SHORT, NULL);
 }
 
 void font_render(const char *text, uint8_t align) {

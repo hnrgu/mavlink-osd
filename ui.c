@@ -1,5 +1,6 @@
 // egl_bar.c - self-contained example of a vertical bar moving across the screen.
 // compile with  gcc -Wall -O0 -g -o egl_bar egl_bar.c log.c -lX11 -lEGL -lGLESv2 -lm
+#include <assert.h>
 #include <stdio.h>
 #include <math.h>
 #include <malloc.h>
@@ -11,12 +12,18 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+#ifdef EGL_NO_X11
+#define MAX_DRM_DEVICES 4
+#include "bcm_host.h"
+#else
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
+#endif
 
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 #include "telem_data.h"
 #include "shader.h"
@@ -109,6 +116,7 @@ static void log_egl_details(EGLDisplay egl_display, EGLConfig egl_conf) {
 }
 
 void *render_thread_start(void *arg) {
+#ifndef EGL_NO_X11
 	Display *x_display = XOpenDisplay(NULL);
 	if (x_display == NULL) {
 		printf("cannot connect to X server\n");
@@ -180,14 +188,39 @@ void *render_thread_start(void *arg) {
 			False,
 			SubstructureNotifyMask,
 			&xev);
+#else
+	EGL_DISPMANX_WINDOW_T nativewindow;
+	DISPMANX_DISPLAY_HANDLE_T dispman_display;
+	DISPMANX_ELEMENT_HANDLE_T dispman_element;
 
+	DISPMANX_UPDATE_HANDLE_T dispman_update;
+	VC_RECT_T dst_rect;
+	VC_RECT_T src_rect;
+	bcm_host_init();
+
+	graphics_get_display_size(0 /* LCD */, &nativewindow.width, &nativewindow.height);
+
+	dispman_display = vc_dispmanx_display_open( 0 /* LCD */);
+	dispman_update = vc_dispmanx_update_start( 0 );
+	dispman_element = vc_dispmanx_element_add ( dispman_update, dispman_display,
+			5/*layer*/, &dst_rect, 0/*src*/,
+			&src_rect, DISPMANX_PROTECTION_NONE, 0 /*alpha*/, 0/*clamp*/, 0/*transform*/);
+
+	nativewindow.element = dispman_element;
+	vc_dispmanx_update_submit_sync( dispman_update );
+
+#endif
 
 	///////  the egl part  //////////////////////////////////////////////////////////////////
 	//  egl provides an interface to connect the graphics related functionality of openGL ES
 	//  with the windowing interface and functionality of the native operation system (X11
 	//  in our case.)
-
+	eglBindAPI(EGL_OPENGL_ES2_BIT);
+#ifndef EGL_NO_X11
 	EGLDisplay egl_display = eglGetDisplay((EGLNativeDisplayType) x_display);
+#else
+	EGLDisplay egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+#endif
 	if (egl_display == EGL_NO_DISPLAY) {
 		printf("Got no EGL display.\n");
 		return 1;
@@ -208,7 +241,7 @@ void *render_thread_start(void *arg) {
 			EGL_STENCIL_SIZE, 8,
 			EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
 			EGL_CONFIG_CAVEAT, EGL_NONE,
-			EGL_SAMPLES, 4,
+//			EGL_SAMPLES, 4,
 			EGL_NONE
 	};
 
@@ -224,7 +257,11 @@ void *render_thread_start(void *arg) {
 		return 1;
 	}
 
+#ifndef EGL_NO_X11
 	EGLSurface egl_surface = eglCreateWindowSurface(egl_display, egl_conf, win, NULL);
+#else
+	EGLSurface egl_surface = eglCreateWindowSurface(egl_display, egl_conf, &nativewindow, NULL);
+#endif
 	if (egl_surface == EGL_NO_SURFACE) {
 		printf("Unable to create EGL surface (eglError: %s)\n", eglGetError());
 		return 1;
@@ -359,9 +396,15 @@ void *render_thread_start(void *arg) {
 	glLineWidth(2 * SCALE_FACTOR);
 
 	// render loop
+#ifdef EGL_NO_X11
+	struct gbm_bo *bo = NULL;
+#endif
 	for (;;) {
+		printf("\n");
+#ifndef EGL_NO_X11
 		XWindowAttributes gwa;
 		XGetWindowAttributes(x_display, win, &gwa);
+#endif
 
 		glViewport(0, 0, RENDER_WIDTH * SCALE_FACTOR, RENDER_HEIGHT * SCALE_FACTOR);
 
