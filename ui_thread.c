@@ -496,21 +496,21 @@ void start_ui_thread(void *arg) {
 //				telem_data.climbrate);
 //		widget_text_set(&data, buf);
 
-		bank.bank_angle = telem_data.roll;
-		attitude.attitude_pitch = telem_data.pitch;
-		attitude.attitude_roll = telem_data.roll;
-		heading.heading = telem_data.yaw;
+		bank.bank_angle = telem_get_180(TELEM_ROLL);
+		attitude.attitude_pitch = telem_get_180(TELEM_PITCH);
+		attitude.attitude_roll = telem_get_180(TELEM_ROLL);
+		heading.heading = telem_get_360(TELEM_YAW);
 
-		altitude.value = telem_data.altitude;
-		airspeed.value = telem_data.airspeed;
+		altitude.value = telem_get(TELEM_ALTITUDE);
+		airspeed.value = telem_get(TELEM_AIRSPEED);
 
-        sprintf(buf, "GS %.0f", telem_data.groundspeed);
+        sprintf(buf, "GS %.0f", telem_get(TELEM_GROUNDSPEED));
         widget_text_set(&gs, buf);
 
-        sprintf(buf, "VS %.0f", telem_data.climbrate);
+        sprintf(buf, "VS %.0f", telem_get(TELEM_CLIMBRATE));
         widget_text_set(&vs, buf);
 
-        sprintf(buf, "%.5f %.5f", telem_data.lat / 1e7, telem_data.lon / 1e7);
+        sprintf(buf, "%.5f %.5f", telem_get(TELEM_LAT), telem_get(TELEM_LON));
         widget_text_set(&gps, buf);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);

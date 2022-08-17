@@ -51,27 +51,25 @@ void start_xplane11_thread(void *arg) {
                 ptr += sizeof(float);
             }
             printf("[xplane11] DATA %u: %f %f %f %f %f %f %f %f\n", msg_id, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
-            telem_lock();
             switch(msg_id) {
                 case 3: // Speeds
-                    telem_data.airspeed = data[0];
-                    telem_data.groundspeed = data[3];
+                    telem_feed(TELEM_AIRSPEED, data[0]);
+                    telem_feed(TELEM_GROUNDSPEED, data[3]);
                     break;
                 case 17: // pitch, roll, heading
-                    telem_data.pitch = data[0] / 180.0 * M_PI;
-                    telem_data.roll = data[1] / 180.0 * M_PI;
-                    telem_data.yaw = data[2] / 180.0 * M_PI;
+                    telem_feed(TELEM_PITCH, data[0] / 180.0 * M_PI);
+                    telem_feed(TELEM_ROLL, data[1] / 180.0 * M_PI);
+                    telem_feed(TELEM_YAW, data[2] / 180.0 * M_PI);
                     break;
                 case 20: // lat long alt
-                    telem_data.lat = data[0] * 1e7;
-                    telem_data.lon = data[1] * 1e7;
-                    telem_data.altitude = data[2];
+                    telem_feed(TELEM_LAT, data[0]);
+                    telem_feed(TELEM_LON, data[1]);
+                    telem_feed(TELEM_ALTITUDE, data[2]);
                     break;
                 case 132: // climb stat
-                    telem_data.climbrate = data[1];
+                    telem_feed(TELEM_CLIMBRATE, data[1]);
                     break;
             }
-            telem_unlock();
         }
     }
 }

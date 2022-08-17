@@ -3,22 +3,29 @@
 
 #include <stdint.h>
 
-struct telem_data {
-	float roll; // rad
-	float pitch; // rad
-	float yaw; // rad
-	float altitude; // m, msl
-	float airspeed; // m/s
-	float groundspeed; // m/s
-	float climbrate; // m/s
-	int lat; // degE7
-	int lon; // degE7
+enum telem_field {
+    TELEM_ROLL,
+    TELEM_PITCH,
+    TELEM_YAW,
+    TELEM_ALTITUDE,
+    TELEM_AIRSPEED,
+    TELEM_GROUNDSPEED,
+    TELEM_CLIMBRATE,
+    TELEM_LAT,
+    TELEM_LON,
+    TELEM_FIELD_COUNT,
 };
 
-extern struct telem_data telem_data;
+struct telem_data_field {
+    float prev_data, data, update_rate;
+    uint64_t last_updated;
+    int stale;
+};
 
 void telem_init();
-void telem_lock();
-void telem_unlock();
+void telem_feed(enum telem_field field, float data);
+float telem_get(enum telem_field field);
+float telem_get_180(enum telem_field field);
+float telem_get_360(enum telem_field field);
 
 #endif

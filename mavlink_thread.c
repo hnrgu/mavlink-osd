@@ -82,25 +82,23 @@ void start_mavlink_thread(void *arg) {
                     mavlink_attitude_t attitude;
                     mavlink_msg_attitude_decode(&msg, &attitude);
 
-                    telem_lock();
-                    telem_data.pitch = attitude.pitch;
-                    telem_data.roll = attitude.roll;
-                    telem_data.yaw = attitude.yaw;
-                    telem_unlock();
+                    telem_feed(TELEM_PITCH, attitude.pitch);
+                    telem_feed(TELEM_ROLL, attitude.roll);
+                    telem_feed(TELEM_YAW, attitude.yaw);
                 } else if (msg.msgid == MAVLINK_MSG_ID_VFR_HUD) {
                     mavlink_vfr_hud_t vfr_hud;
                     mavlink_msg_vfr_hud_decode(&msg, &vfr_hud);
 
-                    telem_data.airspeed = vfr_hud.airspeed;
-                    telem_data.groundspeed = vfr_hud.groundspeed;
-                    telem_data.altitude = vfr_hud.alt;
-                    telem_data.climbrate = vfr_hud.climb;
+                    telem_feed(TELEM_AIRSPEED, vfr_hud.airspeed);
+                    telem_feed(TELEM_GROUNDSPEED, vfr_hud.groundspeed);
+                    telem_feed(TELEM_ALTITUDE, vfr_hud.alt);
+                    telem_feed(TELEM_CLIMBRATE, vfr_hud.climb);
                 } else if (msg.msgid == MAVLINK_MSG_ID_GLOBAL_POSITION_INT) {
                     mavlink_global_position_int_t global_position;
                     mavlink_msg_global_position_int_decode(&msg, &global_position);
 
-                    telem_data.lat = global_position.lat;
-                    telem_data.lon = global_position.lon;
+                    telem_feed(TELEM_LAT, global_position.lat / 1e7);
+                    telem_feed(TELEM_LON, global_position.lon / 1e7);
                 }
             }
         }
