@@ -53,7 +53,7 @@ void shader_load_program(struct program *program, const GLchar *vert, GLint vert
 GLint shader_get_attrib(struct program *program, const GLchar *name) {
 	GLint loc = glGetAttribLocation(program->id, name);
 	if(loc < 0) {
-		fprintf(stderr, "location for attrib \"%s\" not found", name);
+		fprintf(stderr, "location for attrib \"%s\" not found\n", name);
 		assert(0);
 	}
 }
@@ -61,7 +61,7 @@ GLint shader_get_attrib(struct program *program, const GLchar *name) {
 GLint shader_get_uniform(struct program *program, const GLchar *name) {
 	GLint loc = glGetUniformLocation(program->id, name);
 	if(loc < 0) {
-		fprintf(stderr, "location for uniform \"%s\" not found", name);
+		fprintf(stderr, "location for uniform \"%s\" not found\n", name);
 		assert(0);
 	}
 }

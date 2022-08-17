@@ -14,7 +14,7 @@ struct texture {
 
 #define TEXTURE_DATA_LOAD(texture, rgba_sym, width, height) { \
     RESOURCE_DECL(rgba_sym);                                  \
-    texture_data(texture, width, height, &rgba_sym##_start);  \
+    texture_data(texture, width, height, &RESOURCE_START(rgba_sym));  \
 }
 
 void texture_init(struct texture *texture, GLint internal_format, GLenum format, GLenum type);

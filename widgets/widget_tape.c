@@ -49,7 +49,7 @@ static void draw(struct widget_tape *widget) {
 		if (ind % widget->label_period == 0) {
 			float val = widget->mark_value * (float) ind / widget->round_mult;
 			char buf[16];
-			snprintf(buf, sizeof(buf), "%.*f", widget->decimals, val);
+			snprintf(buf, sizeof(buf), "%*.*f", widget->characters, widget->decimals, val);
 
 			if (!widget->direction) {
 				font_render(buf, FONT_ALIGN_H_LEFT | FONT_ALIGN_V_CENTER);
@@ -74,7 +74,7 @@ static void draw(struct widget_tape *widget) {
 		render_scale(-1, 1);
 	}
 	char buf[16];
-	snprintf(buf, sizeof(buf), "%.*f", widget->decimals, widget->value);
+	snprintf(buf, sizeof(buf), "%*.*f", widget->characters, widget->decimals, widget->value);
 	if (!widget->direction) {
 		font_render(buf, FONT_ALIGN_H_LEFT | FONT_ALIGN_V_CENTER);
 	} else {

@@ -9,12 +9,12 @@
 #define DEFAULT_SIZE 256
 
 static struct program solid;
-static solid_u_color;
-static solid_u_transform;
-static solid_a_pos;
+static int solid_u_color;
+static int solid_u_transform;
+static int solid_a_pos;
 
 void shape_init() {
-	SHADER_LOAD(&solid, _binary_shaders_solid_vert, _binary_shaders_solid_frag);
+	SHADER_LOAD(&solid, shaders_solid_vert, shaders_solid_frag);
 
 	solid_u_color = shader_get_uniform(&solid, "u_color");
 	solid_u_transform = shader_get_uniform(&solid, "u_transform");
@@ -55,7 +55,7 @@ void shape_draw(struct shape_context *ctx) {
 	glVertexAttribPointer(solid_a_pos, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 	glEnableVertexAttribArray(solid_a_pos);
 
-	glUniform4fv(solid_u_color, 1, &render_current_color);
-	glUniformMatrix3fv(solid_u_transform, 1, GL_FALSE, &render_current_transform);
+	glUniform4fv(solid_u_color, 1, render_current_color);
+	glUniformMatrix3fv(solid_u_transform, 1, GL_FALSE, &render_current_transform[0][0]);
 	glDrawArrays(ctx->mode, 0, ctx->num_vertices);
 }

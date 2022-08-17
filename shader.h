@@ -10,8 +10,8 @@
     RESOURCE_DECL(vert_sym);                                                   \
     RESOURCE_DECL(frag_sym);                                                   \
     shader_load_program(program,                                               \
-                        &vert_sym##_start, RESOURCE_SIZE(vert_sym), #vert_sym, \
-                        &frag_sym##_start, RESOURCE_SIZE(frag_sym), #frag_sym);\
+                        &RESOURCE_START(vert_sym), RESOURCE_SIZE(vert_sym), #vert_sym, \
+                        &RESOURCE_START(frag_sym), RESOURCE_SIZE(frag_sym), #frag_sym);\
 }
 
 struct program {

@@ -116,3 +116,4 @@ void widget_attitude_indicator_init(struct widget_attitude_indicator *widget) {
 	shape_vertex(&widget->stencil, 200, 150);
 	shape_end(&widget->stencil);
 }
+

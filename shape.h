@@ -7,8 +7,8 @@
 struct shape_context {
 	GLuint buffer_id;
 	GLenum mode;
-	size_t num_vertices;
-	size_t buffer_size;
+	GLsizei num_vertices;
+	GLsizei buffer_size;
 	float *buffer;
 };
 

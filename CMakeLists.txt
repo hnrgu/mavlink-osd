@@ -3,17 +3,19 @@ cmake_minimum_required(VERSION 3.16)
 project(mavlink C)
 
 set(PROJECT_SOURCES
-		main.c ui.c shader.c texture.c font.c telem_data.c widget.c render.c shape.c matrix.c layout.c
-		widgets/widget_text.c widgets/widget_bank_indicator.c widgets/widget_attitude.c widgets/widget_heading.c widgets/widget_tape.c
-		)
+	main.c ui_thread.c mavlink_thread.c xplane11_thread.c shader.c texture.c font.c telem_data.c widget.c render.c shape.c matrix.c layout.c utils.c
+	widgets/widget_text.c widgets/widget_bank_indicator.c widgets/widget_attitude.c widgets/widget_heading.c widgets/widget_tape.c
+)
 
 set(RESOURCES
-		shaders/font.frag
-		shaders/font.vert
-		shaders/solid.frag
-		shaders/solid.vert
-		fonts/font.rgba
-		)
+	shaders/measure.frag
+	shaders/measure.vert
+	shaders/font.frag
+	shaders/font.vert
+	shaders/solid.frag
+	shaders/solid.vert
+	fonts/font.rgba
+)
 
 foreach(file ${RESOURCES})
 	string(REGEX REPLACE "[/.]" "_" file_stripped ${file})
@@ -38,13 +40,13 @@ if(DEFINED RPI)
 	target_include_directories(main PUBLIC c_library_v2 /opt/vc/include)
 	target_link_directories(main PUBLIC /opt/vc/lib)
 	target_link_libraries(
-			main
-			PUBLIC
-			m
-			brcmGLESv2
-			brcmEGL
-			bcm_host
-			pthread
+		main
+		PUBLIC
+		m
+		brcmGLESv2
+		brcmEGL
+		bcm_host
+		pthread
 	)
 else()
 	target_include_directories(main PUBLIC c_library_v2)

@@ -12,6 +12,7 @@ struct widget_tape {
 	struct shape_context stencil;
 	struct shape_context line;
 	int round_mult;
+    int characters; // number of characters to display
 	int decimals; // number of decimal points
 	int num_marks; // number of visible markings on screen
 	int mark_spacing; // spacing between marks in pixels

@@ -1,6 +1,8 @@
 #ifndef TELEM_DATA_H
 #define TELEM_DATA_H
 
+#include <stdint.h>
+
 struct telem_data {
 	float roll; // rad
 	float pitch; // rad

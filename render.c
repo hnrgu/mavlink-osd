@@ -15,7 +15,7 @@ float render_current_transform[3][3] = {
 };
 
 float render_current_color[4] = {
-		0, 0, 0, 1
+	0, 0, 0, 1
 };
 
 #define TRANSFORM_STACK_SIZE 16

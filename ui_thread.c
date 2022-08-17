@@ -1,5 +1,3 @@
-// egl_bar.c - self-contained example of a vertical bar moving across the screen.
-// compile with  gcc -Wall -O0 -g -o egl_bar egl_bar.c log.c -lX11 -lEGL -lGLESv2 -lm
 #include <assert.h>
 #include <stdio.h>
 #include <math.h>
@@ -32,7 +30,7 @@
 #include "render.h"
 #include "shape.h"
 #include "matrix.h"
-
+#include "utils.h"
 #include "layout.h"
 #include "widgets/widget_text.h"
 #include "widgets/widget_bank_indicator.h"
@@ -40,87 +38,89 @@
 #include "widgets/widget_heading.h"
 #include "widgets/widget_tape.h"
 
+volatile int running = 1;
+
 #define RENDER_WIDTH 720
 #define RENDER_HEIGHT 576
 #define SCALE_FACTOR 1
 
 static void log_egl_details(EGLDisplay egl_display, EGLConfig egl_conf) {
-	printf("EGL Client APIs: %s\n", eglQueryString(egl_display, EGL_CLIENT_APIS));
-	printf("EGL Vendor: %s\n", eglQueryString(egl_display, EGL_VENDOR));
-	printf("EGL Version: %s\n", eglQueryString(egl_display, EGL_VERSION));
-	printf("EGL Extensions: %s\n", eglQueryString(egl_display, EGL_EXTENSIONS));
+	printf("[ui] EGL Client APIs: %s\n", eglQueryString(egl_display, EGL_CLIENT_APIS));
+	printf("[ui] EGL Vendor: %s\n", eglQueryString(egl_display, EGL_VENDOR));
+	printf("[ui] EGL Version: %s\n", eglQueryString(egl_display, EGL_VERSION));
+	printf("[ui] EGL Extensions: %s\n", eglQueryString(egl_display, EGL_EXTENSIONS));
 
 	int i = -1;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_CONFIG_ID, &i);
-	printf("EGL_CONFIG_ID = %d\n", i);
+	printf("[ui] EGL_CONFIG_ID = %d\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_RED_SIZE, &i);
-	printf("EGL_RED_SIZE = %d\n", i);
+	printf("[ui] EGL_RED_SIZE = %d\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_GREEN_SIZE, &i);
-	printf("EGL_GREEN_SIZE = %d\n", i);
+	printf("[ui] EGL_GREEN_SIZE = %d\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_BLUE_SIZE, &i);
-	printf("EGL_BLUE_SIZE = %d\n", i);
+	printf("[ui] EGL_BLUE_SIZE = %d\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_ALPHA_SIZE, &i);
-	printf("EGL_ALPHA_SIZE = %d\n", i);
+	printf("[ui] EGL_ALPHA_SIZE = %d\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_DEPTH_SIZE, &i);
-	printf("EGL_DEPTH_SIZE = %d\n", i);
+	printf("[ui] EGL_DEPTH_SIZE = %d\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_LEVEL, &i);
-	printf("EGL_LEVEL = %d\n", i);
+	printf("[ui] EGL_LEVEL = %d\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_NATIVE_RENDERABLE, &i);
-	printf("EGL_NATIVE_RENDERABLE = %s\n", i ? "EGL_TRUE" : "EGL_FALSE");
+	printf("[ui] EGL_NATIVE_RENDERABLE = %s\n", i ? "EGL_TRUE" : "EGL_FALSE");
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_NATIVE_VISUAL_TYPE, &i);
-	printf("EGL_NATIVE_VISUAL_TYPE = %d\n", i);
+	printf("[ui] EGL_NATIVE_VISUAL_TYPE = %d\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_RENDERABLE_TYPE, &i);
-	printf("EGL_RENDERABLE_TYPE = 0x%04x\n", i);
+	printf("[ui] EGL_RENDERABLE_TYPE = 0x%04x\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_SURFACE_TYPE, &i);
-	printf("EGL_SURFACE_TYPE = 0x%04x\n", i);
+	printf("[ui] EGL_SURFACE_TYPE = 0x%04x\n", i);
 
 	i = 0;
 	eglGetConfigAttrib(egl_display, egl_conf, EGL_TRANSPARENT_TYPE, &i);
 	if (i == EGL_TRANSPARENT_RGB) {
-		printf("EGL_TRANSPARENT_TYPE = EGL_TRANSPARENT_RGB\n");
+		printf("[ui] EGL_TRANSPARENT_TYPE = EGL_TRANSPARENT_RGB\n");
 
 		i = 0;
 		eglGetConfigAttrib(egl_display, egl_conf, EGL_TRANSPARENT_RED_VALUE, &i);
-		printf("EGL_TRANSPARENT_RED = 0x%02x\n", i);
+		printf("[ui] EGL_TRANSPARENT_RED = 0x%02x\n", i);
 
 		i = 0;
 		eglGetConfigAttrib(egl_display, egl_conf, EGL_TRANSPARENT_GREEN_VALUE, &i);
-		printf("EGL_TRANSPARENT_GREEN = 0x%02x\n", i);
+		printf("[ui] EGL_TRANSPARENT_GREEN = 0x%02x\n", i);
 
 		i = 0;
 		eglGetConfigAttrib(egl_display, egl_conf, EGL_TRANSPARENT_BLUE_VALUE, &i);
-		printf("EGL_TRANSPARENT_BLUE = 0x%02x\n", i);
+		printf("[ui] EGL_TRANSPARENT_BLUE = 0x%02x\n", i);
 	} else {
-		printf("EGL_TRANSPARENT_TYPE = EGL_NONE\n");
+		printf("[ui] EGL_TRANSPARENT_TYPE = EGL_NONE\n");
 	}
 }
 
-void *render_thread_start(void *arg) {
+void start_ui_thread(void *arg) {
 #ifndef EGL_NO_X11
 	Display *x_display = XOpenDisplay(NULL);
 	if (x_display == NULL) {
-		printf("cannot connect to X server\n");
-		return 1;
+		printf("[ui] cannot connect to X server\n");
+		return;
 	}
 
 	Window root = DefaultRootWindow(x_display);   // get the root window (usually the whole screen)
@@ -128,17 +128,21 @@ void *render_thread_start(void *arg) {
 	unsigned int root_w, root_h, root_border_width, root_depth;
 	Window root_again;
 	XGetGeometry(x_display, root, &root_again, &root_x, &root_y, &root_w, &root_h, &root_border_width, &root_depth);
-	printf("Matching X11 root window geometry: +%d,%d %dx%d border %d, %dbpp\n\n",
+	printf("[ui] Matching X11 root window geometry: +%d,%d %dx%d border %d, %dbpp\n\n",
 	       root_x, root_y, root_w, root_h, root_border_width, root_depth);
 
 	XSetWindowAttributes  swa;
 	swa.event_mask  =  ExposureMask | ButtonPressMask | KeyPressMask;
 
 	Window win = XCreateWindow(x_display, root,
-	                           0, 0, RENDER_WIDTH * SCALE_FACTOR, RENDER_HEIGHT * SCALE_FACTOR, 0,
+	                           0, 0, 873, 464, 0,
 	                           CopyFromParent, InputOutput,
 	                           CopyFromParent, CWEventMask,
 	                           &swa);
+
+    // Redirect Close
+    Atom atomWmDeleteWindow = XInternAtom(x_display, "WM_DELETE_WINDOW", False);
+    XSetWMProtocols(x_display, win, &atomWmDeleteWindow, 1);
 
 	XSetWindowAttributes xattr;
 
@@ -222,16 +226,16 @@ void *render_thread_start(void *arg) {
 	EGLDisplay egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
 #endif
 	if (egl_display == EGL_NO_DISPLAY) {
-		printf("Got no EGL display.\n");
-		return 1;
+		printf("[ui] Got no EGL display.\n");
+		return;
 	}
 
 	EGLint egl_version_major, egl_version_minor;
 	if (!eglInitialize(egl_display, &egl_version_major, &egl_version_minor)) {
-		printf("Unable to initialize EGL\n");
-		return 1;
+		printf("[ui] Unable to initialize EGL\n");
+		return;
 	}
-	printf("Initialized EGL version %d.%d\n", egl_version_major, egl_version_minor);
+	printf("[ui] Initialized EGL version %d.%d\n", egl_version_major, egl_version_minor);
 
 	EGLint egl_config_constraints[] = {
 			EGL_RED_SIZE, 8,
@@ -248,13 +252,13 @@ void *render_thread_start(void *arg) {
 	EGLConfig egl_conf;
 	EGLint num_config;
 	if (!eglChooseConfig(egl_display, egl_config_constraints, &egl_conf, 1, &num_config)) {
-		printf("Failed to choose config (eglError: %s)\n", eglGetError());
-		return 1;
+		printf("[ui] Failed to choose config (eglError: %s)\n", eglGetError());
+		return;
 	}
 
 	if (num_config != 1) {
-		printf("Didn't get exactly one config, but %d\n", num_config);
-		return 1;
+		printf("[ui] Didn't get exactly one config, but %d\n", num_config);
+		return;
 	}
 
 #ifndef EGL_NO_X11
@@ -263,19 +267,19 @@ void *render_thread_start(void *arg) {
 	EGLSurface egl_surface = eglCreateWindowSurface(egl_display, egl_conf, &nativewindow, NULL);
 #endif
 	if (egl_surface == EGL_NO_SURFACE) {
-		printf("Unable to create EGL surface (eglError: %s)\n", eglGetError());
-		return 1;
+		printf("[ui] Unable to create EGL surface (eglError: %s)\n", eglGetError());
+		return;
 	}
 
-	//// egl-contexts collect all state descriptions needed required for operation
+	// egl-contexts collect all state descriptions needed required for operation
 	EGLint ctxattr[] = {
 			EGL_CONTEXT_CLIENT_VERSION, 2,
 			EGL_NONE
 	};
 	EGLContext egl_context = eglCreateContext(egl_display, egl_conf, EGL_NO_CONTEXT, ctxattr);
 	if (egl_context == EGL_NO_CONTEXT) {
-		printf("Unable to create EGL context (eglError: %s)\n", eglGetError());
-		return 1;
+		printf("[ui] Unable to create EGL context (eglError: %s)\n", eglGetError());
+		return;
 	}
 
 	//// associate the egl-context with the egl-surface
@@ -286,21 +290,25 @@ void *render_thread_start(void *arg) {
 	EGLint queriedRenderBuffer;
 	if (eglQueryContext(egl_display, egl_context, EGL_RENDER_BUFFER, &queriedRenderBuffer)) {
 		switch (queriedRenderBuffer) {
-			case EGL_SINGLE_BUFFER: printf("Render Buffer: EGL_SINGLE_BUFFER\n"); break;
-			case EGL_BACK_BUFFER: printf("Render Buffer: EGL_BACK_BUFFER\n"); break;
-			case EGL_NONE: printf("Render Buffer: EGL_NONE\n"); break;
-			default: printf("Render Buffer: unknown value %d\n", queriedRenderBuffer); break;
+			case EGL_SINGLE_BUFFER: printf("[ui] Render Buffer: EGL_SINGLE_BUFFER\n"); break;
+			case EGL_BACK_BUFFER: printf("[ui] Render Buffer: EGL_BACK_BUFFER\n"); break;
+			case EGL_NONE: printf("[ui] Render Buffer: EGL_NONE\n"); break;
+			default: printf("[ui] Render Buffer: unknown value %d\n", queriedRenderBuffer); break;
 		}
 	} else {
-		printf("Failed to query EGL_RENDER_BUFFER: %d\n", eglGetError());
+		printf("[ui] Failed to query EGL_RENDER_BUFFER: %d\n", eglGetError());
 	}
 
 	if (!eglSwapInterval(egl_display, 1)) {
-		printf("eglSwapInterval failed: %d\n", eglGetError());
+		printf("[ui] eglSwapInterval failed: %d\n", eglGetError());
 	} else {
-		printf("Set swap interval\n");
+		printf("[ui] Set swap interval\n");
 	}
 
+#ifdef MEASURE
+    struct program measure_program;
+    SHADER_LOAD(&measure_program, shaders_measure_vert, shaders_measure_frag);
+#endif
 
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 	glEnable(GL_BLEND);
@@ -310,53 +318,62 @@ void *render_thread_start(void *arg) {
 	shape_init();
 	layout_init();
 
-	float transform[3][3];
+	float identity[3][3];
+    float transform[3][3];
+    matrix_identity(identity);
 
 	// Attitude indicator
 	struct widget_attitude_indicator attitude;
 	widget_attitude_indicator_init(&attitude);
-
-	matrix_identity(transform);
-	matrix_translate(360, 288, transform);
-	layout_add(&attitude, transform);
+	layout_add(&attitude, 0.5, 0.5, 0, 0, identity);
 
 	// Text
 	struct widget_text text;
 	widget_text_init(&text);
 	widget_text_set(&text, "test");
+	layout_add(&text, 0, 0, 0, 0, identity);
 
-	matrix_identity(transform);
-	layout_add(&text, transform);
-
-	struct widget_text data;
-	widget_text_init(&data);
-	data.color[0] = 0;
-	data.align = FONT_ALIGN_H_CENTER | FONT_ALIGN_V_CENTER;
-
-	matrix_translate(360, 288, transform);
-	layout_add(&data, transform);
+//	struct widget_text data;
+//	widget_text_init(&data);
+//	data.color[0] = 0;
+//	data.align = FONT_ALIGN_H_CENTER | FONT_ALIGN_V_CENTER;
+//	layout_add(&data, 0.5, 0.5, 0, 0, identity);
 
 	// Bank indicator
 	struct widget_bank_indicator bank;
 	widget_bank_indicator_init(&bank);
-
-	matrix_translate(360, 144, transform);
-	matrix_scale_multiply(100, 100, transform, transform);
-	layout_add(&bank, transform);
+	matrix_scale_multiply(100, 100, identity, transform);
+	layout_add(&bank, 0.5, 0.25, 0, 0, transform);
 
 	// Heading indicator
 	struct widget_heading_indicator heading;
 	widget_heading_indicator_init(&heading);
+	layout_add(&heading, 0.5, 1, 0, 0, identity);
 
-	matrix_translate(360, 500, transform);
-	layout_add(&heading, transform);
+    // GS text
+    struct widget_text gs;
+    widget_text_init(&gs);
+    gs.align = FONT_ALIGN_H_RIGHT | FONT_ALIGN_V_BOTTOM;
+    layout_add(&gs, 0, 1, 150, -20, identity);
+
+    // VS text
+    struct widget_text vs;
+    widget_text_init(&vs);
+    vs.align = FONT_ALIGN_H_LEFT | FONT_ALIGN_V_BOTTOM;
+    layout_add(&vs, 1, 1, -150, -20, identity);
+
+    // GPS text
+    struct widget_text gps;
+    widget_text_init(&gps);
+    gps.align = FONT_ALIGN_H_RIGHT | FONT_ALIGN_V_TOP;
+    layout_add(&gps, 1, 0, 0, 0, identity);
 
 	// Altitude tape
 	struct widget_tape altitude;
 	altitude.decimals = 1;
 	altitude.num_marks = 9;
-	altitude.mark_spacing = 50;
-	altitude.mark_length = 25;
+	altitude.mark_spacing = 40;
+	altitude.mark_length = 15;
 	altitude.mark_value = 5;
 	altitude.label_period = 2;
 	altitude.label_gap = 5;
@@ -369,15 +386,14 @@ void *render_thread_start(void *arg) {
 	altitude.direction = 0;
 	widget_tape_init(&altitude);
 
-	matrix_translate(570, 288, transform);
-	layout_add(&altitude, transform);
+	layout_add(&altitude, 1, 0.5, -150, 0, identity);
 
 	// Air speed tape
 	struct widget_tape airspeed;
 	airspeed.decimals = 1;
 	airspeed.num_marks = 9;
-	airspeed.mark_spacing = 50;
-	airspeed.mark_length = 25;
+	airspeed.mark_spacing = 40;
+	airspeed.mark_length = 15;
 	airspeed.mark_value = 10;
 	airspeed.label_period = 2;
 	airspeed.label_gap = 5;
@@ -390,44 +406,95 @@ void *render_thread_start(void *arg) {
 	airspeed.direction = 1;
 	widget_tape_init(&airspeed);
 
-	matrix_translate(150, 288, transform);
-	layout_add(&airspeed, transform);
+    layout_add(&airspeed, 0, 0.5, 150, 0, identity);
 
 	glLineWidth(2 * SCALE_FACTOR);
+
+    int surf_width, surf_height;
+
+    int overscan_left, overscan_top, overscan_right, overscan_bottom;
+    float scale_x, scale_y;
+
+    uint64_t prev_time = 0;
 
 	// render loop
 #ifdef EGL_NO_X11
 	struct gbm_bo *bo = NULL;
 #endif
-	for (;;) {
-		printf("\n");
+	while (running) {
+        uint64_t cur_time = get_monotonic_time();
+
+        double fps = 1e9 / (cur_time - prev_time);
+        prev_time = cur_time;
 #ifndef EGL_NO_X11
+        if(XPending(x_display) > 0) {
+            XEvent event;
+            XNextEvent(x_display, &event);
+            if(event.type == ClientMessage) {
+                if(event.xclient.data.l[0] == atomWmDeleteWindow) {
+                    break;
+                }
+            }
+        }
+
 		XWindowAttributes gwa;
 		XGetWindowAttributes(x_display, win, &gwa);
+        surf_width = gwa.width;
+        surf_height = gwa.height;
+        overscan_left = 0;
+        overscan_top = 0;
+        overscan_right = 0;
+        overscan_bottom = 0;
+//        scale_x = 0.69;
+        scale_x = 1;
+        scale_y = 1;
+#else
+        surf_width = RENDER_WIDTH;
+        surf_height = RENDER_HEIGHT;
+        overscan_left = 7;
+        overscan_top = 109;
+        overscan_right = 14;
+        overscan_bottom = 3;
+        scale_x = 0.8;
+        scale_y = 1;
 #endif
 
-		glViewport(0, 0, RENDER_WIDTH * SCALE_FACTOR, RENDER_HEIGHT * SCALE_FACTOR);
+        int physical_width = surf_width - overscan_left - overscan_right;
+        int physical_height = surf_height - overscan_top - overscan_bottom;
+
+        glViewport(0, 0, surf_width, surf_height);
+        glClearColor(1.0, 0.0, 1.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glViewport(overscan_left, overscan_bottom, physical_width, physical_height);
+
+        int logical_width = physical_width / scale_x;
+        int logical_height = physical_height / scale_y;
 
 		render_load_identity();
-		render_ortho(0, RENDER_WIDTH, RENDER_HEIGHT, 0);
+		render_ortho(0, logical_width, logical_height, 0);
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        layout_set_logical_size(logical_width, logical_height);
 
-		char buf[2048];
-		sprintf(buf,
-				"Attitude: %f %f %f\n"
-				"GPS: %d %d\n"
-				"Airspeed: %f\n"
-				"Groundspeed: %f\n"
-				"Altitude: %f\n"
-				"Climb rate: %f",
-				telem_data.pitch, telem_data.roll, (telem_data.yaw) / M_PI * 180,
-				telem_data.lat, telem_data.lon,
-				telem_data.airspeed,
-				telem_data.groundspeed,
-				telem_data.altitude,
-				telem_data.climbrate);
-		widget_text_set(&data, buf);
+        char buf[2048];
+        sprintf(buf, "%.0f", fps);
+
+        widget_text_set(&text, buf);
+
+//		sprintf(buf,
+//				"Attitude: %f %f %f\n"
+//				"GPS: %d %d\n"
+//				"Airspeed: %f\n"
+//				"Groundspeed: %f\n"
+//				"Altitude: %f\n"
+//				"Climb rate: %f",
+//				telem_data.pitch, telem_data.roll, (telem_data.yaw) / M_PI * 180,
+//				telem_data.lat, telem_data.lon,
+//				telem_data.airspeed,
+//				telem_data.groundspeed,
+//				telem_data.altitude,
+//				telem_data.climbrate);
+//		widget_text_set(&data, buf);
 
 		bank.bank_angle = telem_data.roll;
 		attitude.attitude_pitch = telem_data.pitch;
@@ -435,11 +502,47 @@ void *render_thread_start(void *arg) {
 		heading.heading = telem_data.yaw;
 
 		altitude.value = telem_data.altitude;
-
 		airspeed.value = telem_data.airspeed;
 
+        sprintf(buf, "GS %.0f", telem_data.groundspeed);
+        widget_text_set(&gs, buf);
+
+        sprintf(buf, "VS %.0f", telem_data.climbrate);
+        widget_text_set(&vs, buf);
+
+        sprintf(buf, "%.5f %.5f", telem_data.lat / 1e7, telem_data.lon / 1e7);
+        widget_text_set(&gps, buf);
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		layout_render();
 
-		eglSwapBuffers(egl_display, egl_surface);
+#ifdef MEASURE
+        shader_enable(&measure_program);
+
+        GLuint buffer;
+        glGenBuffers(1, &buffer);
+        glBindBuffer(GL_ARRAY_BUFFER, buffer);
+        GLfloat buffer_data[] = {
+            -2.0f, -2.0f,
+             2.0f, -2.0f,
+            -2.0f,  2.0f,
+             2.0f,  2.0f
+        };
+        glUniform2f(shader_get_uniform(&measure_program, "u_window_size"), surf_width, surf_height);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(buffer_data), buffer_data, GL_STATIC_DRAW);
+        glVertexAttribPointer(shader_get_attrib(&measure_program, "a_pos"), 2, GL_FLOAT, GL_FALSE, 0, NULL);
+        glEnableVertexAttribArray(shader_get_attrib(&measure_program, "a_pos"));
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        glDeleteBuffers(1, &buffer);
+#endif
+
+        if(eglSwapBuffers(egl_display, egl_surface) != EGL_TRUE) {
+            return;
+        }
 	}
+}
+
+void stop_ui_thread() {
+    running = 0;
 }
