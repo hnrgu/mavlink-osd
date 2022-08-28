@@ -54,9 +54,10 @@ static void draw(struct widget_heading_indicator *widget) {
 		render_pop_matrix();
 	}
 
+	/*
 	render_set_color(0, 1, 0, 1);
 	shape_draw(&widget->needle);
-	shape_draw(&widget->needle_arrow);
+	shape_draw(&widget->needle_arrow);*/
 }
 
 void widget_heading_indicator_init(struct widget_heading_indicator *widget) {

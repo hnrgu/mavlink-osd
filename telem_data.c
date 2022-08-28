@@ -70,3 +70,10 @@ float telem_get_180(enum telem_field field) {
     }
     return data;
 }
+
+float telem_get_raw(enum telem_field field) {
+    pthread_mutex_lock(&lock);
+    float data = fields[field].data;
+    pthread_mutex_unlock(&lock);
+    return data;
+}

@@ -10,6 +10,35 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+
+const char *mode_strs[] = {
+    [0] = "MANUAL",
+    [1] = "CIRCLE",
+    [2] = "STABILIZE",
+    [3] = "TRAINING",
+    [4] = "ACRO",
+    [5] = "FLY_BY_WIRE_A",
+    [6] = "FLY_BY_WIRE_B",
+    [7] = "CRUISE",
+    [8] = "AUTOTUNE",
+    [10] = "AUTO",
+    [11] = "RTL",
+    [12] = "LOITER",
+    [13] = "TAKEOFF",
+    [14] = "AVOID_ADSB",
+    [15] = "GUIDED",
+    [16] = "INITIALISING",
+    [17] = "QSTABILIZE",
+    [18] = "QHOVER",
+    [19] = "QLOITER",
+    [20] = "QLAND",
+    [21] = "QRTL",
+    [22] = "QAUTOTUNE",
+    [23] = "QACRO",
+    [24] = "THERMAL",
+    [25] = "LOITER_ALT_QLAND",
+};
+
 #ifdef EGL_NO_X11
 #define MAX_DRM_DEVICES 4
 #include "bcm_host.h"
@@ -348,13 +377,25 @@ void start_ui_thread(void *arg) {
 	// Heading indicator
 	struct widget_heading_indicator heading;
 	widget_heading_indicator_init(&heading);
-	layout_add(&heading, 0.5, 1, 0, 0, identity);
+	layout_add(&heading, 0.5, 1, 0, 50, identity);
+
+    // Armed status
+    struct widget_text armed;
+    widget_text_init(&armed);
+    armed.align = FONT_ALIGN_H_RIGHT | FONT_ALIGN_V_TOP;
+    layout_add(&armed, 0, 0, 150, 20, identity);
 
     // GS text
     struct widget_text gs;
     widget_text_init(&gs);
     gs.align = FONT_ALIGN_H_RIGHT | FONT_ALIGN_V_BOTTOM;
     layout_add(&gs, 0, 1, 150, -20, identity);
+
+    // Flight mode
+    struct widget_text mode;
+    widget_text_init(&mode);
+    mode.align = FONT_ALIGN_H_RIGHT | FONT_ALIGN_V_TOP;
+    layout_add(&mode, 1, 0, -75, 20, identity);
 
     // VS text
     struct widget_text vs;
@@ -421,6 +462,7 @@ void start_ui_thread(void *arg) {
 #ifdef EGL_NO_X11
 	struct gbm_bo *bo = NULL;
 #endif
+	unsigned long long last_fps = 0;
 	while (running) {
         uint64_t cur_time = get_monotonic_time();
 
@@ -453,7 +495,7 @@ void start_ui_thread(void *arg) {
         surf_height = RENDER_HEIGHT;
         overscan_left = 7;
         overscan_top = 109;
-        overscan_right = 14;
+        overscan_right = 16;
         overscan_bottom = 3;
         scale_x = 0.8;
         scale_y = 1;
@@ -462,9 +504,9 @@ void start_ui_thread(void *arg) {
         int physical_width = surf_width - overscan_left - overscan_right;
         int physical_height = surf_height - overscan_top - overscan_bottom;
 
-        glViewport(0, 0, surf_width, surf_height);
-        glClearColor(1.0, 0.0, 1.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
+//        glViewport(0, 0, surf_width, surf_height);
+//        glClearColor(1.0, 0.0, 1.0, 1.0);
+//        glClear(GL_COLOR_BUFFER_BIT);
 
         glViewport(overscan_left, overscan_bottom, physical_width, physical_height);
 
@@ -477,9 +519,12 @@ void start_ui_thread(void *arg) {
         layout_set_logical_size(logical_width, logical_height);
 
         char buf[2048];
-        sprintf(buf, "%.0f", fps);
+	if(get_monotonic_time() - last_fps > 1000000000LLU) {
+		sprintf(buf, "%.0f", fps);
+		widget_text_set(&text, buf);
+		last_fps = get_monotonic_time();
+	}
 
-        widget_text_set(&text, buf);
 
 //		sprintf(buf,
 //				"Attitude: %f %f %f\n"
@@ -503,6 +548,16 @@ void start_ui_thread(void *arg) {
 
 		altitude.value = telem_get(TELEM_ALTITUDE);
 		airspeed.value = telem_get(TELEM_AIRSPEED);
+
+        if (telem_get_raw(TELEM_ARMED) > 0.5f) {
+            widget_text_set(&armed, "ARMED");
+        } else {
+            widget_text_set(&armed, "DISARMED");
+        }
+
+        int flight_mode = round(telem_get_raw(TELEM_MODE));
+        const char *mode_str = mode_strs[flight_mode];
+        widget_text_set(&mode, mode_str);
 
         sprintf(buf, "GS %.0f", telem_get(TELEM_GROUNDSPEED));
         widget_text_set(&gs, buf);

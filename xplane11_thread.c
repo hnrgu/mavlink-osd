@@ -31,18 +31,18 @@ void start_xplane11_thread(void *arg) {
     }
 
     while (running) {
-        char buf[2048];
-        ssize_t len = recv(sock_fd, buf, sizeof(buf), 0);
+        uint8_t buf[2048 + 3];
+        ssize_t len = recv(sock_fd, buf + 3, 2048, 0);
         if (len == -1) {
             perror("[xplane11] sock_fd recv");
             return;
         }
-        if (len < 5 || *(uint32_t *) buf != 0x41544144) {
+        if (len < 5 || !(buf[3] == 'D' && buf[4] == 'A' && buf[5] == 'T' && buf[6] == 'A')) {
             continue;
         }
 
-        ssize_t ptr = 5;
-        while(ptr + sizeof(uint32_t) + sizeof(float) * 4 <= len) {
+        ssize_t ptr = 8;
+        while(ptr + sizeof(uint32_t) + sizeof(float) * 4 <= len + 8) {
             uint32_t msg_id = *(uint32_t *) (buf + ptr);
             ptr += sizeof(uint32_t);
             float data[8];
@@ -50,7 +50,6 @@ void start_xplane11_thread(void *arg) {
                 data[i] = *(float *) (buf + ptr);
                 ptr += sizeof(float);
             }
-            printf("[xplane11] DATA %u: %f %f %f %f %f %f %f %f\n", msg_id, data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
             switch(msg_id) {
                 case 3: // Speeds
                     telem_feed(TELEM_AIRSPEED, data[0]);

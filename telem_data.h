@@ -13,6 +13,8 @@ enum telem_field {
     TELEM_CLIMBRATE,
     TELEM_LAT,
     TELEM_LON,
+    TELEM_ARMED,
+    TELEM_MODE,
     TELEM_FIELD_COUNT,
 };
 
@@ -27,5 +29,6 @@ void telem_feed(enum telem_field field, float data);
 float telem_get(enum telem_field field);
 float telem_get_180(enum telem_field field);
 float telem_get_360(enum telem_field field);
+float telem_get_raw(enum telem_field field);
 
 #endif

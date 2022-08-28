@@ -21,12 +21,12 @@ static void draw(struct widget_attitude_indicator *widget) {
 	render_rotate(-widget->attitude_roll);
 	render_translate(0, widget->attitude_pitch / M_PI * 180 * 10);
 
-	render_set_color(0, 0.25, 0.75, 1);
-	shape_draw(&widget->bg_half);
-
-	render_set_color(0.5, 0.25, 0, 1);
-	render_scale(1, -1);
-	shape_draw(&widget->bg_half);
+//	render_set_color(0, 0.25, 0.75, 1);
+//	shape_draw(&widget->bg_half);
+//
+//	render_set_color(0.5, 0.25, 0, 1);
+//	render_scale(1, -1);
+//	shape_draw(&widget->bg_half);
 
 	render_set_color(1, 1, 1, 1);
 	shape_draw(&widget->horizon);

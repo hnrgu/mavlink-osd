@@ -8,7 +8,7 @@
 #include "mavlink_thread.h"
 #include "xplane11_thread.h"
 
-#define XPLANE11
+//#define XPLANE11
 
 void *start_kill_thread(void *arg) {
     usleep(100000);

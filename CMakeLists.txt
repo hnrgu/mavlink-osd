@@ -32,8 +32,8 @@ find_package(PkgConfig REQUIRED)
 
 
 add_executable(main ${PROJECT_SOURCES})
-target_compile_options(main PUBLIC -Wno-address-of-packed-member -Ofast -pg -Ofast -fprofile-arcs -ftest-coverage)
-target_link_options(main PUBLIC -pg -fprofile-arcs -ftest-coverage)
+target_compile_options(main PUBLIC -Wno-address-of-packed-member -Ofast -g -fno-omit-frame-pointer)
+target_link_options(main PUBLIC)
 
 if(DEFINED RPI)
 	add_compile_definitions(EGL_NO_X11)

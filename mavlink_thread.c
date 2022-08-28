@@ -4,17 +4,22 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <common/mavlink.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include "telem_data.h"
+#include "utils.h"
 
 volatile static int running = 0;
-static int tty_fd;
+static int sock_fd;
 
 #define OK(val) if (val == -1) return
 
 int set_message_interval(int fd, int cmd, int us) {
     mavlink_message_t msg;
-    mavlink_msg_command_long_pack(1, 1, &msg, 1, 0, MAV_CMD_SET_MESSAGE_INTERVAL, 0, cmd, us, 0, 0, 0, 0, 0);
+    mavlink_msg_command_long_pack(5, 5, &msg, 1, 0, MAV_CMD_SET_MESSAGE_INTERVAL, 0, cmd, us, 0, 0, 0, 0, 0);
 
     uint8_t mav_buf[MAVLINK_MAX_PACKET_LEN];
     uint16_t mav_len = mavlink_msg_to_send_buffer(mav_buf, &msg);
@@ -24,7 +29,7 @@ int set_message_interval(int fd, int cmd, int us) {
         int len = write(fd, mav_buf + written, mav_len - written);
 
         if (len == -1) {
-            perror("[mavlink] tty fd write");
+            perror("[mavlink] sock fd write");
             return -1;
         }
 
@@ -35,41 +40,45 @@ int set_message_interval(int fd, int cmd, int us) {
 }
 
 void start_mavlink_thread(void *arg) {
-    tty_fd = open((const char *) arg, O_RDWR);
-    if (tty_fd == -1) {
-        perror("[mavlink] tty open");
-        return;
+    sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if(sock_fd == -1) {
+	    perror("[mavlink] sock failed");
+	    return;
     }
 
     running = 1;
 
-    struct termios tty;
-    if (tcgetattr(tty_fd, &tty) != 0) {
-        perror("[mavlink] tty tcgetattr");
-        return;
+    struct sockaddr_in local_addr = {};
+    local_addr.sin_family    = AF_INET;
+    local_addr.sin_addr.s_addr = INADDR_ANY; 
+    local_addr.sin_port = htons(22222);
+    if(bind(sock_fd, (const struct sockaddr *) &local_addr, sizeof(local_addr)) < 0) {
+	    perror("[mavlink] bind failed");
     }
 
-    cfmakeraw(&tty);
-    cfsetispeed(&tty, B921600);
-    cfsetospeed(&tty, B921600);
-
-    if (tcsetattr(tty_fd, TCSANOW, &tty) != 0) {
-        perror("[mavlink] tty tcsetattr");
-        return;
+    struct sockaddr_in remote_addr = {};
+    remote_addr.sin_family    = AF_INET;
+    remote_addr.sin_addr.s_addr = inet_addr("192.168.12.201");
+    remote_addr.sin_port = htons(12346);
+    if(connect(sock_fd, (const struct sockaddr *) &remote_addr, sizeof(remote_addr)) < 0) {
+	    perror("[mavlink] connect failed");
     }
 
-    OK(set_message_interval(tty_fd, MAVLINK_MSG_ID_ATTITUDE, 33333));
-    OK(set_message_interval(tty_fd, MAVLINK_MSG_ID_VFR_HUD, 33333));
-    OK(set_message_interval(tty_fd, MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 1000000));
+
+    OK(set_message_interval(sock_fd, MAVLINK_MSG_ID_ATTITUDE, 33333));
+    OK(set_message_interval(sock_fd, MAVLINK_MSG_ID_VFR_HUD, 33333));
+    OK(set_message_interval(sock_fd, MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 1000000));
 
     telem_init();
 
+    uint64_t last_time = 0;
+
     while (running) {
         char buf[2048];
-        ssize_t len = read(tty_fd, buf, sizeof(buf));
+        ssize_t len = recv(sock_fd, buf, sizeof(buf), 0);
 
         if (len == -1) {
-            perror("[mavlink] tty read");
+            perror("[mavlink] sock read");
             break;
         }
 
@@ -78,7 +87,23 @@ void start_mavlink_thread(void *arg) {
             mavlink_message_t msg;
 
             if (mavlink_parse_char(MAVLINK_COMM_0, buf[i], &msg, &status)) {
-                if (msg.msgid == MAVLINK_MSG_ID_ATTITUDE) {
+		if(get_monotonic_time() - last_time > 1000000000LLU * 60LLU) {
+		    OK(set_message_interval(sock_fd, MAVLINK_MSG_ID_ATTITUDE, 33333));
+		    OK(set_message_interval(sock_fd, MAVLINK_MSG_ID_VFR_HUD, 33333));
+		    OK(set_message_interval(sock_fd, MAVLINK_MSG_ID_GLOBAL_POSITION_INT, 1000000));
+		    last_time = get_monotonic_time();
+		}
+                if (msg.msgid == MAVLINK_MSG_ID_HEARTBEAT) {
+                   mavlink_heartbeat_t heartbeat;
+                   mavlink_msg_heartbeat_decode(&msg, &heartbeat);
+
+                   if (msg.sysid != 1) {
+                       continue;
+                   }
+
+                   telem_feed(TELEM_ARMED, heartbeat.base_mode & MAV_MODE_FLAG_SAFETY_ARMED ? 1 : 0);
+                   telem_feed(TELEM_MODE, heartbeat.custom_mode);
+                } else if (msg.msgid == MAVLINK_MSG_ID_ATTITUDE) {
                     mavlink_attitude_t attitude;
                     mavlink_msg_attitude_decode(&msg, &attitude);
 
@@ -107,8 +132,8 @@ void start_mavlink_thread(void *arg) {
 
 void stop_mavlink_thread() {
     if(running) {
-        printf("[mavlink] tty closing\n");
-        close(tty_fd);
+        printf("[mavlink] sock closing\n");
+        close(sock_fd);
     }
     running = 0;
 }
